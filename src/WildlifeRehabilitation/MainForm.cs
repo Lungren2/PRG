@@ -11,6 +11,9 @@ public sealed class MainForm : Form
     private readonly FlowLayoutPanel actions = new() { Dock = DockStyle.Fill, AutoSize = true, WrapContents = true };
     private readonly Label status = new() { AutoSize = true, Padding = new Padding(0, 8, 0, 4) };
     private readonly Label fileLocation = new() { AutoSize = true, ForeColor = SystemColors.GrayText, Padding = new Padding(0, 0, 0, 4) };
+    private readonly TextBox findId = new() { AccessibleName = "Find animal ID", PlaceholderText = "WR-0001", Width = 110, Margin = new Padding(0, 6, 8, 0), MaxLength = 20 };
+    private readonly Button updateButton;
+    private StoredAnimal? SelectedRecord => animalsGrid.CurrentRow?.Tag as StoredAnimal;
 
     public MainForm()
     {
@@ -36,9 +39,37 @@ public sealed class MainForm : Form
         layout.Controls.Add(fileLocation, 0, 5);
         Controls.Add(layout);
         AddAction("&Add animal", (_, _) => AddAnimal());
+        updateButton = AddAction("&Edit selected", (_, _) => EditSelected());
         AddAction("&Refresh", (_, _) => RefreshAnimals());
+        actions.Controls.Add(new Label { Text = "Find ID", AutoSize = true, Margin = new Padding(10, 9, 8, 0) });
+        actions.Controls.Add(findId);
+        AddAction("&Find", (_, _) => FindAnimal());
+        findId.KeyDown += (_, e) => { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; FindAnimal(); } };
         SetupDataGridView();
+        animalsGrid.SelectionChanged += (_, _) => updateButton.Enabled = SelectedRecord is not null;
+        animalsGrid.CellDoubleClick += (_, e) => { if (e.RowIndex >= 0) EditSelected(); };
         Shown += (_, _) => RefreshAnimals();
+    }
+
+    private void EditSelected()
+    {
+        var selected = SelectedRecord;
+        if (selected is null) return;
+        var animal = selected.Animal;
+        using var editor = new AnimalEditorForm("Update " + animal.Id,
+            new AnimalDraft(animal.Id, animal.Name, animal.Species, animal.Age.ToString(), animal.RecoveryScore.ToString()),
+            replacement => store.Update(selected, replacement), lockId: true);
+        if (editor.ShowDialog(this) == DialogResult.OK)
+            RefreshAnimals($"Updated {animal.Id}.", animal.Id);
+    }
+
+    private void FindAnimal()
+    {
+        var id = findId.Text.Trim().ToUpperInvariant();
+        if (id.Length == 0) { status.Text = "Enter an animal ID, such as WR-0001, then select Find."; findId.Focus(); return; }
+        if (!RefreshAnimals(selectedId: id)) return;
+        if (SelectedRecord?.Animal.Id == id) status.Text = $"Found {id}. Choose Edit selected or double-click the row to update it.";
+        else { status.Text = $"No valid animal record has ID {id}. Check the ID and skipped-line count, then try again."; findId.Focus(); }
     }
 
     private void AddAnimal()
@@ -88,6 +119,7 @@ public sealed class MainForm : Form
 
     private bool RefreshAnimals(string? message = null, string? selectedId = null)
     {
+        selectedId ??= SelectedRecord?.Animal.Id;
         try
         {
             var document = store.Load();

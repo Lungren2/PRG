@@ -67,4 +67,22 @@ try
 }
 finally { File.SetAttributes(store.DataPath, FileAttributes.Normal); }
 Check(!Directory.EnumerateFiles(root, ".prg272-*.tmp").Any(), "Failed writes clean up temporary data files");
+var selected = store.Load().Records.Single(x => x.Animal.Id == added.Id);
+var changed = added with { Name = "Zoë updated", RecoveryScore = 80 };
+var untouchedPrefix = beforeAppend + Environment.NewLine;
+store.Update(selected, changed);
+Check(File.ReadAllText(store.DataPath) == untouchedPrefix + AnimalRules.Serialize(changed) + Environment.NewLine, "Update rewrites only the selected line and reclassifies status and housing");
+var afterUpdate = File.ReadAllText(store.DataPath);
+try { store.Update(selected, added with { Age = 8 }); Check(false, "Stale update rejected"); }
+catch (AnimalConflictException) { Check(File.ReadAllText(store.DataPath) == afterUpdate, "A stale editor cannot overwrite a newer change"); }
+var current = store.Load().Records.Single(x => x.Animal.Id == added.Id);
+try { store.Update(current, changed with { Id = "WR-0099" }); Check(false, "ID changes rejected"); }
+catch (AnimalConflictException) { Check(File.ReadAllText(store.DataPath) == afterUpdate, "Update keeps IDs immutable"); }
+File.AppendAllText(store.DataPath, AnimalRules.Serialize(changed) + "\n");
+var duplicated = File.ReadAllText(store.DataPath);
+try { store.Update(current, changed with { Age = 8 }); Check(false, "Ambiguous update rejected"); }
+catch (AnimalConflictException) { Check(File.ReadAllText(store.DataPath) == duplicated, "Duplicate IDs cannot cause an update to target the wrong row"); }
+File.WriteAllText(store.DataPath, "new malformed line\r\n" + afterUpdate);
+store.Update(current, changed with { Age = 8 });
+Check(File.ReadAllText(store.DataPath).StartsWith("new malformed line\r\n" + untouchedPrefix), "Update finds the original record after another line is inserted, preserving other line endings");
 Console.WriteLine($"{count} checks passed.");
