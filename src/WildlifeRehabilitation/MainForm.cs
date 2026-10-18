@@ -4,7 +4,7 @@ using WildlifeRehabilitation.Domain;
 
 namespace WildlifeRehabilitation;
 
-public sealed class MainForm : Form
+public sealed class MainForm : WindowsBackdropForm
 {
     private readonly AnimalFileStore store = new(AppContext.BaseDirectory);
     private readonly DataGridView animalsGrid = new();
@@ -19,38 +19,52 @@ public sealed class MainForm : Form
     public MainForm()
     {
         Text = "Animal records | Baobab Ridge";
-        Font = new Font("Segoe UI", 10F);
-        AutoScaleMode = AutoScaleMode.Dpi;
-        ClientSize = new Size(1120, 640);
-        MinimumSize = new Size(940, 500);
+        DesktopTheme.Apply(this);
+        ClientSize = new Size(1120, 600);
+        MinimumSize = new Size(980, 500);
         StartPosition = FormStartPosition.CenterScreen;
-        var layout = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(20), ColumnCount = 1, RowCount = 6 };
+        var layout = new TableLayoutPanel { BackColor = DesktopTheme.Canvas, Dock = DockStyle.Fill, Padding = new Padding(14), ColumnCount = 1, RowCount = 4 };
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.Controls.Add(new Label { Text = "Animal records", AutoSize = true, Font = new Font(Font, FontStyle.Bold), Margin = new Padding(0, 0, 0, 6) }, 0, 0);
-        layout.Controls.Add(new Label { Text = "Baobab Ridge Wildlife Rehabilitation Centre", AutoSize = true, Margin = new Padding(0, 0, 0, 14) }, 0, 1);
-        layout.Controls.Add(actions, 0, 2);
-        layout.Controls.Add(animalsGrid, 0, 3);
-        layout.Controls.Add(status, 0, 4);
-        layout.Controls.Add(fileLocation, 0, 5);
+        actions.Margin = new Padding(0, 0, 0, 10);
+        layout.Controls.Add(actions, 0, 0);
+        var gridSurface = new Panel { Dock = DockStyle.Fill, BorderStyle = BorderStyle.Fixed3D, BackColor = DesktopTheme.Surface, Margin = Padding.Empty };
+        gridSurface.Controls.Add(animalsGrid);
+        layout.Controls.Add(gridSurface, 0, 1);
+        layout.Controls.Add(status, 0, 2);
+        layout.Controls.Add(fileLocation, 0, 3);
         Controls.Add(layout);
-        AddAction("&Add animal", (_, _) => AddAnimal());
+        var addButton = AddAction("&Add animal", (_, _) => AddAnimal());
+        DesktopTheme.Style(addButton, primary: true);
         updateButton = AddAction("&Edit selected", (_, _) => EditSelected());
         deleteButton = AddAction("&Delete selected", (_, _) => DeleteSelected());
+        DesktopTheme.Style(deleteButton, danger: true);
         AddAction("&Summary report", (_, _) => { using var summary = new SummaryForm(store); summary.ShowDialog(this); });
         AddAction("&Refresh", (_, _) => RefreshAnimals());
-        actions.Controls.Add(new Label { Text = "Find ID", AutoSize = true, Margin = new Padding(10, 9, 8, 0) });
-        actions.Controls.Add(findId);
-        AddAction("&Find", (_, _) => FindAnimal());
+        var findControls = new FlowLayoutPanel { AutoSize = true, WrapContents = false, Margin = Padding.Empty };
+        findControls.Controls.Add(new Label { Text = "Find ID", AutoSize = true, ForeColor = DesktopTheme.Muted, Margin = new Padding(8, 10, 8, 0) });
+        DesktopTheme.Style(findId);
+        findId.Margin = new Padding(0, 5, 8, 0);
+        fileLocation.ForeColor = DesktopTheme.Muted;
+        findControls.Controls.Add(findId);
+        var findButton = new DesktopButton { Text = "&Find" };
+        DesktopTheme.Style(findButton);
+        findButton.Click += (_, _) => FindAnimal();
+        findControls.Controls.Add(findButton);
+        actions.Controls.Add(findControls);
         findId.KeyDown += (_, e) => { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; FindAnimal(); } };
         SetupDataGridView();
+        DesktopTheme.Style(animalsGrid);
+        foreach (var name in new[] { "Age", "Score" })
+        {
+            animalsGrid.Columns[name].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+            animalsGrid.Columns[name].HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleRight;
+        }
         updateButton.Enabled = deleteButton.Enabled = false;
-        layout.SizeChanged += (_, _) => status.MaximumSize = new Size(Math.Max(100, layout.ClientSize.Width - 45), 0);
+        layout.SizeChanged += (_, _) => status.MaximumSize = new Size(Math.Max(100, layout.ClientSize.Width - 36), 0);
         animalsGrid.SelectionChanged += (_, _) => updateButton.Enabled = deleteButton.Enabled = SelectedRecord is not null;
         animalsGrid.CellDoubleClick += (_, e) => { if (e.RowIndex >= 0) EditSelected(); };
         animalsGrid.KeyDown += (_, e) => { if (e.KeyCode == Keys.Delete) { e.SuppressKeyPress = true; DeleteSelected(); } };
@@ -109,7 +123,8 @@ public sealed class MainForm : Form
 
     private Button AddAction(string text, EventHandler onClick)
     {
-        var button = new Button { Text = text, AutoSize = true, Padding = new Padding(10, 5, 10, 5), Margin = new Padding(0, 0, 8, 12) };
+        var button = new DesktopButton { Text = text };
+        DesktopTheme.Style(button);
         button.Click += onClick;
         actions.Controls.Add(button);
         return button;
@@ -135,7 +150,7 @@ public sealed class MainForm : Form
         animalsGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
         animalsGrid.ColumnHeadersDefaultCellStyle.Font = new Font(Font, FontStyle.Bold);
         string[] headers = ["Animal ID", "Name", "Species", "Age", "Score", "Status", "Housing unit"];
-        int[] widths = [95, 130, 170, 55, 60, 120, 190];
+        int[] widths = [110, 130, 170, 65, 75, 130, 210];
         for (var index = 0; index < headers.Length; index++)
             animalsGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = headers[index], HeaderText = headers[index], MinimumWidth = widths[index], FillWeight = widths[index], SortMode = DataGridViewColumnSortMode.Automatic });
     }
@@ -157,7 +172,7 @@ public sealed class MainForm : Form
             updateButton.Enabled = deleteButton.Enabled = SelectedRecord is not null;
             var prefix = document.Created ? "Created starter file. " : message is null ? "" : message + " ";
             status.Text = $"{prefix}{document.Records.Count} animals loaded. Skipped lines: {document.SkippedCount}." + (document.Records.Count == 0 ? " No animal records to display." : "");
-            status.ForeColor = document.SkippedCount > 0 ? Color.Maroon : SystemColors.ControlText;
+            status.ForeColor = document.SkippedCount > 0 ? DesktopTheme.Error : DesktopTheme.Muted;
             fileLocation.Text = store.DataPath;
             return true;
         }
@@ -166,7 +181,7 @@ public sealed class MainForm : Form
             animalsGrid.Rows.Clear();
             updateButton.Enabled = deleteButton.Enabled = false;
             status.Text = (message is null ? "" : message + " ") + "Records could not be loaded. Resolve the file error and select Refresh.";
-            status.ForeColor = Color.Maroon;
+            status.ForeColor = DesktopTheme.Error;
             fileLocation.Text = store.DataPath;
             UiErrors.Show(this, exception);
             return false;

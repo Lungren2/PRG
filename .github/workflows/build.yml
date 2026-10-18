@@ -15,3 +15,4 @@ jobs:
           dotnet-version: 8.0.x
       - run: dotnet build PRG272.sln --configuration Release
       - run: dotnet run --project tests/WildlifeRehabilitation.Checks --configuration Release --no-build
+      - run: dotnet run --project tools/Preview --configuration Release -- "$env:RUNNER_TEMP\PRG272-previews"

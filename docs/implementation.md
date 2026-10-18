@@ -26,3 +26,17 @@ The precedent is Microsoft's small-record DataGridView sample, which supports se
 - Assignment changes: seven animal columns replace song columns; the grid is read-only; file loading replaces inline samples; Add and Update use a modal editor; Delete confirms before writing; Summary opens a modal report. Native keyboard focus and grid scrolling remain. A resizable layout replaces fixed coordinates so the seven required fields stay usable.
 
 The blank WinForms foundation was committed before feature implementation. Feature branches are merged in view, add, update, delete, summary order. This order establishes the shared model and loading contract before writes.
+
+## Desktop appearance
+
+The existing grid and modal workflow use a shared light theme, Segoe UI typography, a teal primary action, and readable status colors. Standard Windows controls preserve keyboard access. High-contrast mode uses system colors.
+
+`WindowsBackdropForm` applies the documented Windows 11 desktop acrylic backdrop to the title bar and outer frame. Content surfaces stay opaque. Windows 10, unsupported APIs, and offscreen child-form previews use a soft gradient frame. High-contrast startup uses system colors. Window opacity and color-key transparency are never changed.
+
+The native integration uses [DWM_SYSTEMBACKDROP_TYPE](https://learn.microsoft.com/en-us/windows/win32/api/dwmapi/ne-dwmapi-dwm_systembackdrop_type) and [DwmExtendFrameIntoClientArea](https://learn.microsoft.com/en-us/windows/win32/api/dwmapi/nf-dwmapi-dwmextendframeintoclientarea). The API requires Windows 11 build 22621 or newer. Backdrop and frame HRESULTs are checked before enabling the glass background. The optional light title-bar hint can fail without affecting the backdrop.
+
+WinBlur was evaluated for reuse. It is archived and its implementation sets a black background unconditionally, ignores backdrop failures, and extends the frame by an arbitrary large height. A small adapter to Microsoft's published APIs avoids that dependency and adds the required version, high-contrast, and failure handling. No third-party blur engine is included.
+
+## Recovery
+
+Close programs that lock a data file and retry. Run the application from a writable folder. To restore the previous animal file, close the application, copy `animals.backup.txt` over `animals.txt`, then reopen it. Regenerate `summary.txt` through Summary report.
