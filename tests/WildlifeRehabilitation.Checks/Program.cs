@@ -32,4 +32,39 @@ using (var locked = new FileStream(store.DataPath, FileMode.Open, FileAccess.Rea
     try { store.Load(); Check(false, "Locked files produce an I/O error"); }
     catch (IOException) { Check(true, "Locked files produce an I/O error"); }
 }
+string[] expectedStatuses = ["Critical", "Critical", "Serious", "Serious", "Stable", "Stable", "Recovering", "Recovering", "Release-Ready", "Release-Ready"];
+int[] boundaryScores = [0, 19, 20, 39, 40, 59, 60, 79, 80, 100];
+Check(boundaryScores.Select(AnimalRules.Classify).Select(x => x.Status).SequenceEqual(expectedStatuses), "Every score boundary has the required classification");
+foreach (var invalid in new[] {
+    new AnimalDraft("WR-0000", "Name", "Species", "2", "50"),
+    new AnimalDraft("WR-0011", "", "Species", "2", "50"),
+    new AnimalDraft("WR-0011", "Bad|Name", "Species", "2", "50"),
+    new AnimalDraft("WR-0011", "Name", "Species\nNext", "2", "50"),
+    new AnimalDraft("WR-0011", "Name", "Species", "-1", "50"),
+    new AnimalDraft("WR-0011", "Name", "Species", "2", "101"),
+    new AnimalDraft("WR-0011", "Name", "Species", "2", "-1") })
+    Check(!AnimalRules.TryCreate(invalid, out _, out _), "Invalid field input is rejected");
+var added = new Animal("WR-0011", "Zoë", "Léopard", 2, 39);
+File.WriteAllText(store.DataPath, first + "\nmalformed line", new UTF8Encoding(false));
+var beforeAppend = File.ReadAllText(store.DataPath);
+store.Append(added);
+Check(File.ReadAllText(store.DataPath).StartsWith(beforeAppend + Environment.NewLine), "Append preserves existing raw lines and separates an unterminated final line");
+Check(store.Load().Records.Last().Animal == added && store.Load().SkippedCount == 1, "UTF-8 added record round-trips with derived score-39 classification");
+Check(File.ReadAllText(Path.Combine(root, "animals.backup.txt")) == beforeAppend, "Animal writes retain the previous file as a backup");
+var afterAppend = File.ReadAllText(store.DataPath);
+try { store.Append(added); Check(false, "Duplicate append rejected"); }
+catch (AnimalConflictException) { Check(File.ReadAllText(store.DataPath) == afterAppend, "Duplicate append preserves the data file"); }
+using (var writer = new FileStream(Path.Combine(root, ".animals.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None))
+{
+    try { new AnimalFileStore(root).Append(added with { Id = "WR-0012" }); Check(false, "Competing writer blocked"); }
+    catch (IOException) { Check(File.ReadAllText(store.DataPath) == afterAppend, "Overlapping writers cannot overwrite the data file"); }
+}
+File.SetAttributes(store.DataPath, FileAttributes.ReadOnly);
+try
+{
+    try { store.Append(added with { Id = "WR-0012" }); Check(false, "Read-only file rejected"); }
+    catch (UnauthorizedAccessException) { Check(File.ReadAllText(store.DataPath) == afterAppend, "Read-only file failure preserves the original"); }
+}
+finally { File.SetAttributes(store.DataPath, FileAttributes.Normal); }
+Check(!Directory.EnumerateFiles(root, ".prg272-*.tmp").Any(), "Failed writes clean up temporary data files");
 Console.WriteLine($"{count} checks passed.");

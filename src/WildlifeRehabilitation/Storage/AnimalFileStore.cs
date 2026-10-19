@@ -21,17 +21,59 @@ public sealed partial class AnimalFileStore
         var created = false;
         if (!File.Exists(DataPath))
         {
+            using var guard = AcquireWriter();
+            if (File.Exists(DataPath)) return ReadDocument();
             using var seed = typeof(AnimalFileStore).Assembly.GetManifestResourceStream("WildlifeRehabilitation.Data.animals.seed.txt")!;
             using var reader = new StreamReader(seed, Utf8);
             var content = reader.ReadToEnd();
-            using var file = new FileStream(DataPath, FileMode.CreateNew, FileAccess.Write, FileShare.None);
-            var bytes = Utf8.GetBytes(content);
-            file.Write(bytes);
-            file.Flush(true);
+            AtomicTextFile.Write(DataPath, content, replaceExisting: false);
             created = true;
         }
         return ReadDocument(created);
     }
+
+    private FileStream AcquireWriter() => new(Path.Combine(DirectoryPath, ".animals.lock"),
+        FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None, 1, FileOptions.DeleteOnClose);
+
+    private static string RawId(FileLine line) => line.Content.Split('|')[0].Trim().ToUpperInvariant();
+
+    public string SuggestId()
+    {
+        var used = Load().Lines.Select(RawId).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        for (var number = 1; number <= 9999; number++)
+        {
+            var id = $"WR-{number:0000}";
+            if (!used.Contains(id)) return id;
+        }
+        throw new AnimalConflictException("All IDs from WR-0001 to WR-9999 are in use.");
+    }
+
+    public void Append(Animal animal)
+    {
+        animal = ValidateForSave(animal);
+        using var guard = AcquireWriter();
+        var document = ReadDocument();
+        if (document.Lines.Any(line => RawId(line) == animal.Id))
+            throw new AnimalConflictException($"ID {animal.Id} already exists, including in a skipped line. Use another ID.");
+        var original = JoinLines(document.Lines);
+        var separator = original.Length > 0 && !original.EndsWith('\n') && !original.EndsWith('\r') ? Environment.NewLine : "";
+        SaveAnimals(original + separator + AnimalRules.Serialize(animal) + Environment.NewLine);
+    }
+
+    private static Animal ValidateForSave(Animal animal)
+    {
+        var draft = new AnimalDraft(animal.Id, animal.Name, animal.Species,
+            animal.Age.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            animal.RecoveryScore.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        if (!AnimalRules.TryCreate(draft, out var validated, out var errors))
+            throw new ArgumentException(string.Join(" ", errors.Values));
+        return validated!;
+    }
+
+    private static string JoinLines(IEnumerable<FileLine> lines) => string.Concat(lines.Select(line => line.Content + line.Ending));
+
+    private void SaveAnimals(string text) => AtomicTextFile.Write(DataPath, text,
+        replaceExisting: true, Path.Combine(DirectoryPath, "animals.backup.txt"));
 
     private AnimalDocument ReadDocument(bool created = false)
     {
