@@ -73,6 +73,14 @@ public sealed partial class AnimalFileStore
         SaveAnimals(JoinLines(lines));
     }
 
+    public void Delete(StoredAnimal expected)
+    {
+        using var guard = AcquireWriter();
+        var document = ReadDocument();
+        var target = FindCurrentRecord(document, expected);
+        SaveAnimals(JoinLines(document.Lines.Where((_, index) => index != target.LineIndex)));
+    }
+
     private static StoredAnimal FindCurrentRecord(AnimalDocument document, StoredAnimal expected)
     {
         if (document.Lines.Count(line => RawId(line) == expected.Animal.Id) != 1)

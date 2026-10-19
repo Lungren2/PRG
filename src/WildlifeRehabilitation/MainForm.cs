@@ -13,6 +13,7 @@ public sealed class MainForm : Form
     private readonly Label fileLocation = new() { AutoSize = true, ForeColor = SystemColors.GrayText, Padding = new Padding(0, 0, 0, 4) };
     private readonly TextBox findId = new() { AccessibleName = "Find animal ID", PlaceholderText = "WR-0001", Width = 110, Margin = new Padding(0, 6, 8, 0), MaxLength = 20 };
     private readonly Button updateButton;
+    private readonly Button deleteButton;
     private StoredAnimal? SelectedRecord => animalsGrid.CurrentRow?.Tag as StoredAnimal;
 
     public MainForm()
@@ -40,15 +41,34 @@ public sealed class MainForm : Form
         Controls.Add(layout);
         AddAction("&Add animal", (_, _) => AddAnimal());
         updateButton = AddAction("&Edit selected", (_, _) => EditSelected());
+        deleteButton = AddAction("&Delete selected", (_, _) => DeleteSelected());
         AddAction("&Refresh", (_, _) => RefreshAnimals());
         actions.Controls.Add(new Label { Text = "Find ID", AutoSize = true, Margin = new Padding(10, 9, 8, 0) });
         actions.Controls.Add(findId);
         AddAction("&Find", (_, _) => FindAnimal());
         findId.KeyDown += (_, e) => { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; FindAnimal(); } };
         SetupDataGridView();
-        animalsGrid.SelectionChanged += (_, _) => updateButton.Enabled = SelectedRecord is not null;
+        animalsGrid.SelectionChanged += (_, _) => updateButton.Enabled = deleteButton.Enabled = SelectedRecord is not null;
         animalsGrid.CellDoubleClick += (_, e) => { if (e.RowIndex >= 0) EditSelected(); };
+        animalsGrid.KeyDown += (_, e) => { if (e.KeyCode == Keys.Delete) { e.SuppressKeyPress = true; DeleteSelected(); } };
         Shown += (_, _) => RefreshAnimals();
+    }
+
+    private void DeleteSelected()
+    {
+        var selected = SelectedRecord;
+        if (selected is null) return;
+        var result = MessageBox.Show(this,
+            $"Delete {selected.Animal.Id} ({selected.Animal.Name})? This cannot be undone in the app.",
+            "Confirm delete", MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2);
+        if (result != DialogResult.Yes) return;
+        try
+        {
+            store.Delete(selected);
+            RefreshAnimals($"Deleted {selected.Animal.Id}.");
+        }
+        catch (AnimalConflictException exception) { MessageBox.Show(this, exception.Message, "Cannot delete animal", MessageBoxButtons.OK, MessageBoxIcon.Information); }
+        catch (Exception exception) when (UiErrors.IsFileError(exception)) { UiErrors.Show(this, exception); }
     }
 
     private void EditSelected()
