@@ -103,4 +103,25 @@ try { store.Delete(toDelete); Check(false, "Missing target rejected"); }
 catch (AnimalConflictException) { Check(File.ReadAllText(store.DataPath) == afterDelete, "Deleting an already-removed record cannot delete a different animal"); }
 store.Delete(store.Load().Records.Single());
 Check(store.Load().Records.Count == 0 && !store.Load().Created, "Deleting the last valid animal leaves an empty view without restoring starters");
+var critical = new Animal("WR-0020", "One", "Species", 2, 0);
+var ready = new Animal("WR-0021", "Two", "Species", 8, 100);
+File.WriteAllText(store.DataPath, AnimalRules.Serialize(critical) + "\nmalformed\n" + AnimalRules.Serialize(ready) + "\n" + AnimalRules.Serialize(critical));
+var report = AnimalSummary.Create(store.Load(), new DateTime(2026, 10, 19, 12, 30, 0));
+Check(report.Contains("Total animals: 2") && report.Contains("Average age (years): 5.00") && report.Contains("Average recovery score: 50.00"), "Summary totals and averages include only valid unique animals");
+Check(report.Contains("Critical: 1") && report.Contains("Serious: 0") && report.Contains("Stable: 0") && report.Contains("Recovering: 0") && report.Contains("Release-Ready: 1"), "Summary includes all five status counts, including zeroes");
+Check(report.Contains("Skipped malformed or duplicate lines: 2") && report.Contains("Generated: 2026-10-19 12:30"), "Summary reports skipped lines and its generation time");
+store.SaveSummary(report);
+Check(File.ReadAllText(store.SummaryPath, Encoding.UTF8) == report, "Saved UTF-8 summary matches the generated report");
+File.WriteAllText(store.DataPath, "");
+var emptyReport = AnimalSummary.Create(store.Load(), DateTime.Now);
+Check(emptyReport.Contains("Total animals: 0") && emptyReport.Contains("Average age (years): N/A") && emptyReport.Contains("Average recovery score: N/A"), "An empty summary has no division-by-zero or fabricated averages");
+using (var lockedSummary = new FileStream(store.SummaryPath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+{
+    try { store.SaveSummary(emptyReport); Check(false, "Locked summary rejected"); }
+    catch (IOException) { Check(true, "Locked summary reports a save failure"); }
+}
+Check(File.ReadAllText(store.SummaryPath) == report, "A failed summary save preserves the existing report");
+store.SaveSummary(emptyReport);
+Check(File.ReadAllText(store.SummaryPath) == emptyReport, "A regenerated report replaces the previous summary");
+Check(File.ReadAllText(store.DataPath) == "", "Summary generation never changes animal data");
 Console.WriteLine($"{count} checks passed.");

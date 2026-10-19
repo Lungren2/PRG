@@ -12,6 +12,7 @@ public sealed partial class AnimalFileStore
 {
     internal static readonly UTF8Encoding Utf8 = new(false, true);
     public string DataPath { get; }
+    public string SummaryPath => Path.Combine(DirectoryPath, "summary.txt");
     public string DirectoryPath => Path.GetDirectoryName(DataPath)!;
 
     public AnimalFileStore(string directory) => DataPath = Path.Combine(Path.GetFullPath(directory), "animals.txt");
@@ -105,6 +106,12 @@ public sealed partial class AnimalFileStore
 
     private void SaveAnimals(string text) => AtomicTextFile.Write(DataPath, text,
         replaceExisting: true, Path.Combine(DirectoryPath, "animals.backup.txt"));
+
+    public void SaveSummary(string report)
+    {
+        using var guard = AcquireWriter();
+        AtomicTextFile.Write(SummaryPath, report, replaceExisting: File.Exists(SummaryPath));
+    }
 
     private AnimalDocument ReadDocument(bool created = false)
     {
