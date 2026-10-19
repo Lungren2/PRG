@@ -15,7 +15,7 @@ internal sealed class DesktopButton : Button
     public override Size GetPreferredSize(Size proposedSize)
     {
         var size = base.GetPreferredSize(proposedSize);
-        return new Size(size.Width, size.Height + 4);
+        return new Size(Math.Max(72, size.Width), Math.Max(36, Font.Height + Padding.Vertical + 8));
     }
 
     protected override void OnPaint(PaintEventArgs e)
