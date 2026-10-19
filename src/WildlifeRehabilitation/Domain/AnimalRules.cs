@@ -8,15 +8,39 @@ public static partial class AnimalRules
     [GeneratedRegex(@"^WR-[0-9]{4}$", RegexOptions.CultureInvariant)]
     private static partial Regex IdPattern();
 
-    public static (string Status, string HousingUnit) Classify(int score) => score switch
+    // Adapted from Tian's Classes.TextWriter switch. Original: reference/tian-add/Classes.cs.
+    // Add and Update share this one copy; the Serious range now includes score 39.
+    public static (string Status, string HousingUnit) Classify(int animalRecoveryScore)
     {
-        >= 0 and <= 19 => ("Critical", "Intensive Care Unit"),
-        >= 20 and <= 39 => ("Serious", "High-Dependency Ward"),
-        >= 40 and <= 59 => ("Stable", "Recovery Ward"),
-        >= 60 and <= 79 => ("Recovering", "Outdoor Enclosure"),
-        >= 80 and <= 100 => ("Release-Ready", "Pre-Release Camp"),
-        _ => throw new ArgumentOutOfRangeException(nameof(score), "Score must be between 0 and 100.")
-    };
+        string housingUnit;
+        string status;
+        switch (animalRecoveryScore)
+        {
+            case int a when a >= 0 && a <= 19:
+                housingUnit = "Intensive Care Unit";
+                status = "Critical";
+                break;
+            case int a when a >= 20 && a <= 39:
+                housingUnit = "High-Dependency Ward";
+                status = "Serious";
+                break;
+            case int a when a >= 40 && a <= 59:
+                housingUnit = "Recovery Ward";
+                status = "Stable";
+                break;
+            case int a when a >= 60 && a <= 79:
+                housingUnit = "Outdoor Enclosure";
+                status = "Recovering";
+                break;
+            case int a when a >= 80 && a <= 100:
+                housingUnit = "Pre-Release Camp";
+                status = "Release-Ready";
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(animalRecoveryScore), "Score must be between 0 and 100.");
+        }
+        return (status, housingUnit);
+    }
 
     public static bool TryCreate(AnimalDraft draft, out Animal? animal, out Dictionary<string, string> errors)
     {

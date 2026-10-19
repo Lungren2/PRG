@@ -54,7 +54,19 @@ public sealed partial class AnimalFileStore
         animal = ValidateForSave(animal);
         using var guard = AcquireWriter();
         var document = ReadDocument();
-        if (document.Lines.Any(line => RawId(line) == animal.Id))
+        // Adapted from Tian's Classes.TextWriter duplicate-ID scan.
+        // Check raw lines too, so an invalid record cannot give its ID to a new animal.
+        bool exists = false;
+        foreach (var line in document.Lines)
+        {
+            string[] ids = line.Content.Split('|');
+            if (ids[0].Trim().Equals(animal.Id, StringComparison.OrdinalIgnoreCase))
+            {
+                exists = true;
+                break;
+            }
+        }
+        if (exists)
             throw new AnimalConflictException($"ID {animal.Id} already exists, including in a skipped line. Use another ID.");
         var original = JoinLines(document.Lines);
         var separator = original.Length > 0 && !original.EndsWith('\n') && !original.EndsWith('\r') ? Environment.NewLine : "";

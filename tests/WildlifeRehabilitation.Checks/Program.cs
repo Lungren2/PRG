@@ -35,6 +35,13 @@ using (var locked = new FileStream(store.DataPath, FileMode.Open, FileAccess.Rea
 string[] expectedStatuses = ["Critical", "Critical", "Serious", "Serious", "Stable", "Stable", "Recovering", "Recovering", "Release-Ready", "Release-Ready"];
 int[] boundaryScores = [0, 19, 20, 39, 40, 59, 60, 79, 80, 100];
 Check(boundaryScores.Select(AnimalRules.Classify).Select(x => x.Status).SequenceEqual(expectedStatuses), "Every score boundary has the required classification");
+string[] expectedHousing = ["Intensive Care Unit", "Intensive Care Unit", "High-Dependency Ward", "High-Dependency Ward", "Recovery Ward", "Recovery Ward", "Outdoor Enclosure", "Outdoor Enclosure", "Pre-Release Camp", "Pre-Release Camp"];
+Check(boundaryScores.Select(AnimalRules.Classify).Select(x => x.HousingUnit).SequenceEqual(expectedHousing), "Tian's five recovery cases retain the required housing at every boundary");
+foreach (var score in new[] { -1, 101 })
+{
+    try { AnimalRules.Classify(score); Check(false, "Out-of-range classification rejected"); }
+    catch (ArgumentOutOfRangeException) { Check(true, "Out-of-range classification rejected"); }
+}
 foreach (var invalid in new[] {
     new AnimalDraft("WR-0000", "Name", "Species", "2", "50"),
     new AnimalDraft("WR-0011", "", "Species", "2", "50"),
@@ -54,6 +61,11 @@ Check(File.ReadAllText(Path.Combine(root, "animals.backup.txt")) == beforeAppend
 var afterAppend = File.ReadAllText(store.DataPath);
 try { store.Append(added); Check(false, "Duplicate append rejected"); }
 catch (AnimalConflictException) { Check(File.ReadAllText(store.DataPath) == afterAppend, "Duplicate append preserves the data file"); }
+File.AppendAllText(store.DataPath, "wr-0012|incomplete\n");
+var withSkippedId = File.ReadAllText(store.DataPath);
+try { store.Append(added with { Id = "WR-0012" }); Check(false, "ID on a malformed line rejected"); }
+catch (AnimalConflictException) { Check(File.ReadAllText(store.DataPath) == withSkippedId, "Tian's adapted ID scan reserves malformed-line IDs without changing the file"); }
+File.WriteAllText(store.DataPath, afterAppend, new UTF8Encoding(false));
 using (var writer = new FileStream(Path.Combine(root, ".animals.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None))
 {
     try { new AnimalFileStore(root).Append(added with { Id = "WR-0012" }); Check(false, "Competing writer blocked"); }
