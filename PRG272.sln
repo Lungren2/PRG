@@ -11,6 +11,15 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WildlifeRehabilitation.Checks", "tests\WildlifeRehabilitation.Checks\WildlifeRehabilitation.Checks.csproj", "{AA12A2E8-F5B9-4AB7-B375-ED9D8B66C4E6}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tian Add source", "Tian Add source", "{2DE3BF41-A06D-4781-88F4-A7FA311D165E}"
+	ProjectSection(SolutionItems) = preProject
+		docs\add-animal.md = docs\add-animal.md
+		reference\tian-add\README.md = reference\tian-add\README.md
+		reference\tian-add\Classes.cs = reference\tian-add\Classes.cs
+		reference\tian-add\Form1.cs = reference\tian-add\Form1.cs
+		reference\tian-add\Form1.Designer.cs = reference\tian-add\Form1.Designer.cs
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
