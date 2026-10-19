@@ -1,5 +1,6 @@
 // Adapted from Microsoft's DataGridViewSimpleUnbound sample. See THIRD-PARTY-NOTICES.txt.
 using WildlifeRehabilitation.Storage;
+using WildlifeRehabilitation.Domain;
 
 namespace WildlifeRehabilitation;
 
@@ -34,9 +35,22 @@ public sealed class MainForm : Form
         layout.Controls.Add(status, 0, 4);
         layout.Controls.Add(fileLocation, 0, 5);
         Controls.Add(layout);
+        AddAction("&Add animal", (_, _) => AddAnimal());
         AddAction("&Refresh", (_, _) => RefreshAnimals());
         SetupDataGridView();
         Shown += (_, _) => RefreshAnimals();
+    }
+
+    private void AddAnimal()
+    {
+        try
+        {
+            using var editor = new AnimalEditorForm("Add animal", new AnimalDraft(store.SuggestId(), "", "", "", ""), store.Append);
+            if (editor.ShowDialog(this) == DialogResult.OK)
+                RefreshAnimals($"Added {editor.SavedAnimal!.Id}.", editor.SavedAnimal.Id);
+        }
+        catch (AnimalConflictException exception) { MessageBox.Show(this, exception.Message, "Cannot add animal", MessageBoxButtons.OK, MessageBoxIcon.Information); }
+        catch (Exception exception) when (UiErrors.IsFileError(exception)) { UiErrors.Show(this, exception); }
     }
 
     private Button AddAction(string text, EventHandler onClick)
@@ -94,7 +108,7 @@ public sealed class MainForm : Form
         catch (Exception exception) when (UiErrors.IsFileError(exception))
         {
             animalsGrid.Rows.Clear();
-            status.Text = "Records could not be loaded. Resolve the file error and select Refresh.";
+            status.Text = (message is null ? "" : message + " ") + "Records could not be loaded. Resolve the file error and select Refresh.";
             status.ForeColor = Color.Maroon;
             fileLocation.Text = store.DataPath;
             UiErrors.Show(this, exception);
