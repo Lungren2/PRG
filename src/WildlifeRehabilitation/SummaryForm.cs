@@ -3,7 +3,7 @@ using WildlifeRehabilitation.Storage;
 
 namespace WildlifeRehabilitation;
 
-public sealed class SummaryForm : Form
+public sealed class SummaryForm : WindowsBackdropForm
 {
     private readonly AnimalFileStore store;
     private readonly RichTextBox report = new() { Dock = DockStyle.Fill, ReadOnly = true, WordWrap = false, Font = new Font("Consolas", 10F), BackColor = SystemColors.Window, AccessibleName = "Animal summary report" };
@@ -13,28 +13,33 @@ public sealed class SummaryForm : Form
     {
         this.store = store;
         Text = "Animal summary report";
-        Font = new Font("Segoe UI", 10F);
-        AutoScaleMode = AutoScaleMode.Dpi;
-        ClientSize = new Size(850, 600);
-        MinimumSize = new Size(650, 500);
+        DesktopTheme.Apply(this);
+        ClientSize = new Size(800, 560);
+        MinimumSize = new Size(650, 450);
         StartPosition = FormStartPosition.CenterParent;
-        var layout = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(20), ColumnCount = 1, RowCount = 3 };
+        var layout = new TableLayoutPanel { BackColor = DesktopTheme.Canvas, Dock = DockStyle.Fill, Padding = new Padding(14), ColumnCount = 1, RowCount = 3 };
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        var buttons = new FlowLayoutPanel { Dock = DockStyle.Fill, AutoSize = true };
-        var generate = new Button { Text = "&Generate again", AutoSize = true, Padding = new Padding(8, 4, 8, 4) };
+        var buttons = new FlowLayoutPanel { Dock = DockStyle.Fill, AutoSize = true, FlowDirection = FlowDirection.RightToLeft };
+        var generate = new DesktopButton { Text = "&Generate again" };
         generate.Click += (_, _) => Generate();
-        var close = new Button { Text = "Close", DialogResult = DialogResult.Cancel, AutoSize = true, Padding = new Padding(8, 4, 8, 4) };
-        buttons.Controls.Add(generate);
+        var close = new DesktopButton { Text = "Close", DialogResult = DialogResult.Cancel };
+        DesktopTheme.Style(generate);
+        DesktopTheme.Style(close);
         buttons.Controls.Add(close);
-        layout.Controls.Add(report, 0, 0);
+        buttons.Controls.Add(generate);
+        report.BorderStyle = BorderStyle.None;
+        report.ForeColor = DesktopTheme.Ink;
+        var paper = new Panel { Dock = DockStyle.Fill, BorderStyle = BorderStyle.Fixed3D, BackColor = DesktopTheme.Surface, Padding = new Padding(12) };
+        paper.Controls.Add(report);
+        layout.Controls.Add(paper, 0, 0);
         layout.Controls.Add(feedback, 0, 1);
         layout.Controls.Add(buttons, 0, 2);
         Controls.Add(layout);
         CancelButton = close;
-        layout.SizeChanged += (_, _) => feedback.MaximumSize = new Size(Math.Max(100, layout.ClientSize.Width - 45), 0);
+        layout.SizeChanged += (_, _) => feedback.MaximumSize = new Size(Math.Max(100, layout.ClientSize.Width - 36), 0);
         Shown += (_, _) => Generate();
     }
 
@@ -48,19 +53,19 @@ public sealed class SummaryForm : Form
         catch (Exception exception) when (UiErrors.IsFileError(exception))
         {
             report.Clear();
-            feedback.ForeColor = Color.Maroon;
+            feedback.ForeColor = DesktopTheme.Error;
             feedback.Text = "The report could not be generated. " + UiErrors.Describe(exception);
             return;
         }
         try
         {
             store.SaveSummary(report.Text);
-            feedback.ForeColor = SystemColors.ControlText;
+            feedback.ForeColor = DesktopTheme.Muted;
             feedback.Text = "Report generated and saved to " + store.SummaryPath;
         }
         catch (Exception exception) when (UiErrors.IsFileError(exception))
         {
-            feedback.ForeColor = Color.Maroon;
+            feedback.ForeColor = DesktopTheme.Error;
             feedback.Text = "The report is visible above, but summary.txt could not be saved. " + UiErrors.Describe(exception);
         }
     }
