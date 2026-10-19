@@ -10,7 +10,7 @@ public sealed class MainForm : Form
     private readonly DataGridView animalsGrid = new();
     private readonly FlowLayoutPanel actions = new() { Dock = DockStyle.Fill, AutoSize = true, WrapContents = true };
     private readonly Label status = new() { AutoSize = true, Padding = new Padding(0, 8, 0, 4) };
-    private readonly Label fileLocation = new() { AutoSize = true, ForeColor = SystemColors.GrayText, Padding = new Padding(0, 0, 0, 4) };
+    private readonly Label fileLocation = new() { AutoSize = false, AutoEllipsis = true, Dock = DockStyle.Fill, Height = 24, ForeColor = SystemColors.GrayText, Padding = new Padding(0, 0, 0, 4) };
     private readonly TextBox findId = new() { AccessibleName = "Find animal ID", PlaceholderText = "WR-0001", Width = 110, Margin = new Padding(0, 6, 8, 0), MaxLength = 20 };
     private readonly Button updateButton;
     private readonly Button deleteButton;
@@ -42,12 +42,15 @@ public sealed class MainForm : Form
         AddAction("&Add animal", (_, _) => AddAnimal());
         updateButton = AddAction("&Edit selected", (_, _) => EditSelected());
         deleteButton = AddAction("&Delete selected", (_, _) => DeleteSelected());
+        AddAction("&Summary report", (_, _) => { using var summary = new SummaryForm(store); summary.ShowDialog(this); });
         AddAction("&Refresh", (_, _) => RefreshAnimals());
         actions.Controls.Add(new Label { Text = "Find ID", AutoSize = true, Margin = new Padding(10, 9, 8, 0) });
         actions.Controls.Add(findId);
         AddAction("&Find", (_, _) => FindAnimal());
         findId.KeyDown += (_, e) => { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; FindAnimal(); } };
         SetupDataGridView();
+        updateButton.Enabled = deleteButton.Enabled = false;
+        layout.SizeChanged += (_, _) => status.MaximumSize = new Size(Math.Max(100, layout.ClientSize.Width - 45), 0);
         animalsGrid.SelectionChanged += (_, _) => updateButton.Enabled = deleteButton.Enabled = SelectedRecord is not null;
         animalsGrid.CellDoubleClick += (_, e) => { if (e.RowIndex >= 0) EditSelected(); };
         animalsGrid.KeyDown += (_, e) => { if (e.KeyCode == Keys.Delete) { e.SuppressKeyPress = true; DeleteSelected(); } };
@@ -88,8 +91,8 @@ public sealed class MainForm : Form
         var id = findId.Text.Trim().ToUpperInvariant();
         if (id.Length == 0) { status.Text = "Enter an animal ID, such as WR-0001, then select Find."; findId.Focus(); return; }
         if (!RefreshAnimals(selectedId: id)) return;
-        if (SelectedRecord?.Animal.Id == id) status.Text = $"Found {id}. Choose Edit selected or double-click the row to update it.";
-        else { status.Text = $"No valid animal record has ID {id}. Check the ID and skipped-line count, then try again."; findId.Focus(); }
+        if (SelectedRecord?.Animal.Id == id) status.Text = $"Found {id}. " + status.Text;
+        else { status.Text = $"No valid animal record has ID {id}. " + status.Text; findId.Focus(); }
     }
 
     private void AddAnimal()
@@ -151,6 +154,7 @@ public sealed class MainForm : Form
                 animalsGrid.Rows[index].Tag = record;
                 if (animal.Id == selectedId) animalsGrid.CurrentCell = animalsGrid.Rows[index].Cells[0];
             }
+            updateButton.Enabled = deleteButton.Enabled = SelectedRecord is not null;
             var prefix = document.Created ? "Created starter file. " : message is null ? "" : message + " ";
             status.Text = $"{prefix}{document.Records.Count} animals loaded. Skipped lines: {document.SkippedCount}." + (document.Records.Count == 0 ? " No animal records to display." : "");
             status.ForeColor = document.SkippedCount > 0 ? Color.Maroon : SystemColors.ControlText;
@@ -160,6 +164,7 @@ public sealed class MainForm : Form
         catch (Exception exception) when (UiErrors.IsFileError(exception))
         {
             animalsGrid.Rows.Clear();
+            updateButton.Enabled = deleteButton.Enabled = false;
             status.Text = (message is null ? "" : message + " ") + "Records could not be loaded. Resolve the file error and select Refresh.";
             status.ForeColor = Color.Maroon;
             fileLocation.Text = store.DataPath;
