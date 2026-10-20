@@ -20,7 +20,13 @@ public class WindowsBackdropForm : Form
         if (!TopLevel || SystemInformation.HighContrast || !OperatingSystem.IsWindowsVersionAtLeast(10, 0, 22621)) return;
         var backdrop = 3; // DWMSBT_TRANSIENTWINDOW: Windows desktop acrylic.
         var lightTitleBar = 0;
-        var margins = new Margins { Left = -1, Right = -1, Top = -1, Bottom = -1 };
+        // Negative margins turn the entire client area into glass. GDI text in child
+        // controls then loses its opacity; extend only into the reserved outer frame.
+        var margins = new Margins
+        {
+            Left = Padding.Left, Right = Padding.Right,
+            Top = Padding.Top, Bottom = Padding.Bottom
+        };
         if (DwmSetWindowAttribute(Handle, 38, ref backdrop, sizeof(int)) >= 0 &&
             DwmExtendFrameIntoClientArea(Handle, ref margins) >= 0)
         {

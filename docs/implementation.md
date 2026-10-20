@@ -36,6 +36,8 @@ The grid, shared editor, and modal report use a light theme, Segoe UI typography
 
 `WindowsBackdropForm` applies the documented Windows 11 desktop acrylic backdrop to the title bar and outer frame. Content surfaces stay opaque. Windows 10, unsupported APIs, and offscreen child-form previews use a soft gradient frame. High-contrast startup uses system colors. Window opacity and color-key transparency are never changed.
 
+Frame extension uses the form's reserved padding as positive margins. Negative margins extend glass across the entire client area, causing GDI-rendered labels, button captions, and grid text to lose opacity during desktop composition. `DrawToBitmap` does not reproduce that compositor effect, so bitmap previews alone cannot verify live acrylic text rendering.
+
 The native integration uses [DWM_SYSTEMBACKDROP_TYPE](https://learn.microsoft.com/en-us/windows/win32/api/dwmapi/ne-dwmapi-dwm_systembackdrop_type) and [DwmExtendFrameIntoClientArea](https://learn.microsoft.com/en-us/windows/win32/api/dwmapi/nf-dwmapi-dwmextendframeintoclientarea). The API requires Windows 11 build 22621 or newer. Backdrop and frame HRESULTs are checked before enabling the glass background. The optional light title-bar hint can fail without affecting the backdrop.
 
 WinBlur was evaluated for reuse. It is archived and its implementation sets a black background unconditionally, ignores backdrop failures, and extends the frame by an arbitrary large height. A small adapter to Microsoft's published APIs avoids that dependency and adds the required version, high-contrast, and failure handling. No third-party blur engine is included.
