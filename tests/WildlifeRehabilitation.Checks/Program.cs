@@ -85,4 +85,22 @@ catch (AnimalConflictException) { Check(File.ReadAllText(store.DataPath) == dupl
 File.WriteAllText(store.DataPath, "new malformed line\r\n" + afterUpdate);
 store.Update(current, changed with { Age = 8 });
 Check(File.ReadAllText(store.DataPath).StartsWith("new malformed line\r\n" + untouchedPrefix), "Update finds the original record after another line is inserted, preserving other line endings");
+var beforeDelete = File.ReadAllText(store.DataPath);
+try { store.Delete(current); Check(false, "Stale delete rejected"); }
+catch (AnimalConflictException) { Check(File.ReadAllText(store.DataPath) == beforeDelete, "A stale selection cannot delete a changed record"); }
+var toDelete = store.Load().Records.Single(x => x.Animal.Id == added.Id);
+using (var locked = new FileStream(store.DataPath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+{
+    try { store.Delete(toDelete); Check(false, "Locked delete rejected"); }
+    catch (IOException) { Check(true, "Delete reports a locked file without changing it"); }
+}
+Check(File.ReadAllText(store.DataPath) == beforeDelete, "Locked delete preserves file contents");
+store.Delete(toDelete);
+Check(File.ReadAllText(store.DataPath) == "new malformed line\r\n" + untouchedPrefix, "Delete removes only the selected record and preserves skipped lines");
+Check(File.ReadAllText(Path.Combine(root, "animals.backup.txt")) == beforeDelete, "Delete retains the previous data file as a recovery backup");
+var afterDelete = File.ReadAllText(store.DataPath);
+try { store.Delete(toDelete); Check(false, "Missing target rejected"); }
+catch (AnimalConflictException) { Check(File.ReadAllText(store.DataPath) == afterDelete, "Deleting an already-removed record cannot delete a different animal"); }
+store.Delete(store.Load().Records.Single());
+Check(store.Load().Records.Count == 0 && !store.Load().Created, "Deleting the last valid animal leaves an empty view without restoring starters");
 Console.WriteLine($"{count} checks passed.");
