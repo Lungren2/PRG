@@ -25,6 +25,15 @@ dotnet build PRG272.sln -c Release
 dotnet run --project tests/WildlifeRehabilitation.Checks -c Release --no-build
 ```
 
-Tian wrote the original Add project. See [his source and the current Add flow](docs/add-animal.md) for the reused code and integration changes.
+## Feature owners
+
+| Feature | Owner |
+| --- | --- |
+| [Add animal and validation](docs/add-animal.md) | Tian Heydenrych |
+| View animals and file loading | Nkosinathi Mathenjwa |
+| Update animal and integration | Ethan Ogle |
+| [Delete animal and summary report](docs/delete-summary.md) | Aseza Patiwe |
+
+The linked code maps show the original source, reused logic, and integration changes.
 
 See [data rules and recovery](docs/implementation.md) for details. Each feature has its own branch and merged pull request.

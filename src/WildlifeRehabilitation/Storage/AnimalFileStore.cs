@@ -91,7 +91,12 @@ public sealed partial class AnimalFileStore
         using var guard = AcquireWriter();
         var document = ReadDocument();
         var target = FindCurrentRecord(document, expected);
-        SaveAnimals(JoinLines(document.Lines.Where((_, index) => index != target.LineIndex)));
+        // Adapted from Aseza Patiwe's frmDelete.btnDelete_Click list/RemoveAll/write sequence.
+        // FindCurrentRecord first proves the selected ID is unique and the record unchanged.
+        string selectedID = target.Animal.Id;
+        var lines = document.Lines.ToList();
+        lines.RemoveAll(line => RawId(line) == selectedID);
+        SaveAnimals(JoinLines(lines));
     }
 
     private static StoredAnimal FindCurrentRecord(AnimalDocument document, StoredAnimal expected)

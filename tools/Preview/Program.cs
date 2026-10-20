@@ -78,8 +78,12 @@ internal static class Program
         Render(new SummaryForm(store), new Size(800, 560), "animal-summary.png", output, form =>
         {
             var report = Descendants(form).OfType<RichTextBox>().Single();
-            if (!report.Text.Contains("Total animals: 11") || !File.Exists(store.SummaryPath))
+            if (!report.Text.Contains("Total animals: 11") || !File.Exists(store.SummaryPath) || File.ReadAllText(store.SummaryPath) != report.Text)
                 throw new Exception("The rendered summary did not generate and save its report.");
+            File.WriteAllText(store.SummaryPath, "outdated report");
+            Descendants(form).OfType<Button>().Single(button => button.Text.Contains("Generate again")).PerformClick();
+            if (!report.Text.Contains("Total animals: 11") || File.ReadAllText(store.SummaryPath) != report.Text)
+                throw new Exception("The summary button did not regenerate matching on-screen and saved reports.");
         });
         Console.WriteLine("Rendered five previews. View, Add validation/duplicate/save, Update, and summary form checks passed.");
     }

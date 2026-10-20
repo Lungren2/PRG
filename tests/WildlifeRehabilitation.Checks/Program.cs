@@ -94,6 +94,12 @@ File.AppendAllText(store.DataPath, AnimalRules.Serialize(changed) + "\n");
 var duplicated = File.ReadAllText(store.DataPath);
 try { store.Update(current, changed with { Age = 8 }); Check(false, "Ambiguous update rejected"); }
 catch (AnimalConflictException) { Check(File.ReadAllText(store.DataPath) == duplicated, "Duplicate IDs cannot cause an update to target the wrong row"); }
+try { store.Delete(current); Check(false, "Ambiguous delete rejected"); }
+catch (AnimalConflictException) { Check(File.ReadAllText(store.DataPath) == duplicated, "Delete cannot remove multiple records sharing the selected ID"); }
+File.WriteAllText(store.DataPath, afterUpdate + " wr-0011|incomplete\n");
+var duplicateSkippedId = File.ReadAllText(store.DataPath);
+try { store.Delete(current); Check(false, "Malformed duplicate delete rejected"); }
+catch (AnimalConflictException) { Check(File.ReadAllText(store.DataPath) == duplicateSkippedId, "Delete preserves valid and malformed lines when their normalized IDs conflict"); }
 File.WriteAllText(store.DataPath, "new malformed line\r\n" + afterUpdate);
 store.Update(current, changed with { Age = 8 });
 Check(File.ReadAllText(store.DataPath).StartsWith("new malformed line\r\n" + untouchedPrefix), "Update finds the original record after another line is inserted, preserving other line endings");
@@ -136,4 +142,12 @@ Check(File.ReadAllText(store.SummaryPath) == report, "A failed summary save pres
 store.SaveSummary(emptyReport);
 Check(File.ReadAllText(store.SummaryPath) == emptyReport, "A regenerated report replaces the previous summary");
 Check(File.ReadAllText(store.DataPath) == "", "Summary generation never changes animal data");
+var statusFixtures = new[] { 0, 20, 40, 60, 80 }.Select((score, index) =>
+    new Animal($"WR-{index + 30:0000}", "Animal", "Species", 3, score));
+File.WriteAllText(store.DataPath, string.Join("\n", statusFixtures.Select(AnimalRules.Serialize)));
+var allStatusReport = AnimalSummary.Create(store.Load(), DateTime.Now);
+Check(new[] { "Critical: 1", "Serious: 1", "Stable: 1", "Recovering: 1", "Release-Ready: 1" }.All(allStatusReport.Contains), "All five of Aseza's named counters count their matching animals");
+File.WriteAllText(store.DataPath, AnimalRules.Serialize(critical with { Age = int.MaxValue }) + "\n" + AnimalRules.Serialize(ready with { Age = int.MaxValue }));
+var largeAgeReport = AnimalSummary.Create(store.Load(), DateTime.Now);
+Check(largeAgeReport.Contains("Average age (years): 2147483647.00"), "Summary totals cannot overflow when valid animal ages exceed an integer sum");
 Console.WriteLine($"{count} checks passed.");

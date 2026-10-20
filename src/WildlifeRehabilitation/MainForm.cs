@@ -40,7 +40,7 @@ public sealed class MainForm : WindowsBackdropForm
         var addButton = AddAction("&Add animal", (_, _) => AddAnimal());
         DesktopTheme.Style(addButton, primary: true);
         updateButton = AddAction("&Edit selected", (_, _) => EditSelected());
-        deleteButton = AddAction("&Delete selected", (_, _) => DeleteSelected());
+        deleteButton = AddAction("&Delete selected", btnDelete_Click);
         DesktopTheme.Style(deleteButton, danger: true);
         AddAction("&Summary report", (_, _) => { using var summary = new SummaryForm(store); summary.ShowDialog(this); });
         AddAction("&Refresh", (_, _) => RefreshAnimals());
@@ -67,11 +67,13 @@ public sealed class MainForm : WindowsBackdropForm
         layout.SizeChanged += (_, _) => status.MaximumSize = new Size(Math.Max(100, layout.ClientSize.Width - 36), 0);
         animalsGrid.SelectionChanged += (_, _) => updateButton.Enabled = deleteButton.Enabled = SelectedRecord is not null;
         animalsGrid.CellDoubleClick += (_, e) => { if (e.RowIndex >= 0) EditSelected(); };
-        animalsGrid.KeyDown += (_, e) => { if (e.KeyCode == Keys.Delete) { e.SuppressKeyPress = true; DeleteSelected(); } };
+        animalsGrid.KeyDown += (_, e) => { if (e.KeyCode == Keys.Delete) { e.SuppressKeyPress = true; btnDelete_Click(this, EventArgs.Empty); } };
         Shown += (_, _) => RefreshAnimals();
     }
 
-    private void DeleteSelected()
+    // Adapted from Aseza Patiwe's frmDelete.btnDelete_Click. Original: reference/delete-summary/frmDelete.cs.
+    // Keep selection -> confirmation -> removal; refresh instead of closing the startup form.
+    private void btnDelete_Click(object? sender, EventArgs e)
     {
         var selected = SelectedRecord;
         if (selected is null) return;
