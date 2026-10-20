@@ -3,7 +3,7 @@ using WildlifeRehabilitation.Storage;
 
 namespace WildlifeRehabilitation;
 
-// Nkosinathi Mathenjwa (604435): startup menu and navigation based on UserInterface.zip.
+// startup menu and navigation based on UserInterface.zip.
 public sealed class MainMenuForm : Form
 {
     private readonly AnimalFileStore store;
@@ -37,7 +37,7 @@ public sealed class MainMenuForm : Form
         logo.Size = new Size(190, 190);
         logo.SizeMode = PictureBoxSizeMode.Zoom;
         logo.TabStop = false;
-        // Reuse the koala from the supplied menu image without drawing a replacement.
+        // Use Koala picture
         using (var stream = typeof(MainMenuForm).Assembly.GetManifestResourceStream("WildlifeRehabilitation.Data.MainMenu.png")!)
         using (var suppliedMenu = new Bitmap(stream))
             logo.Image = suppliedMenu.Clone(new Rectangle(80, 65, 180, 175), suppliedMenu.PixelFormat);
@@ -92,7 +92,7 @@ public sealed class MainMenuForm : Form
         LoadAnimals();
     }
 
-    // Reuses Tian's Add editor and shared append method, then refreshes the menu's file snapshot.
+    // Add editor and shared append method, then refreshes the menu's file snapshot.
     private void AddAnimal()
     {
         try
@@ -112,7 +112,7 @@ public sealed class MainMenuForm : Form
         catch (Exception exception) when (UiErrors.IsFileError(exception)) { UiErrors.Show(this, exception); }
     }
 
-    // Opens Aseza's existing on-screen and text-file summary report.
+    // Opens on-screen and text-file summary report.
     private void OpenSummary()
     {
         using var summary = new SummaryForm(store);
@@ -120,7 +120,7 @@ public sealed class MainMenuForm : Form
         LoadAnimals();
     }
 
-    // Releases the image loaded from the supplied interface when the menu closes.
+    // Releases the image loaded  when the menu closes.
     protected override void Dispose(bool disposing)
     {
         if (disposing) logo.Image?.Dispose();
