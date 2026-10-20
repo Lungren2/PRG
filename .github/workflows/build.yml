@@ -8,6 +8,7 @@ permissions:
 jobs:
   verify:
     runs-on: windows-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -16,3 +17,10 @@ jobs:
       - run: dotnet build PRG272.sln --configuration Release
       - run: dotnet run --project tests/WildlifeRehabilitation.Checks --configuration Release --no-build
       - run: dotnet run --project tools/Preview --configuration Release -- "$env:RUNNER_TEMP\PRG272-previews"
+        timeout-minutes: 2
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: form-previews
+          path: ${{ runner.temp }}\PRG272-previews
+          if-no-files-found: ignore
