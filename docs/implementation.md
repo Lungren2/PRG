@@ -1,6 +1,6 @@
 # Integration decisions
 
-The application uses .NET 8 Windows Forms. The original projects are preserved in Git history and in the existing local import folders. The active app adapts Tian Heydenrych's Add field handling, duplicate-ID scan, and classification switch, plus Aseza Patiwe's Delete flow and Summary counters and averages. The [Add code map](add-animal.md) and [Delete and Summary code map](delete-summary.md) record source credit and integration changes. Shared validation, storage infrastructure, and the current UI were added during consolidation. Feature ownership is listed in the README and does not reassign Git authorship.
+The application uses .NET 8 Windows Forms. The original projects are preserved in Git history. The active app adapts Tian Heydenrych's Add field handling, duplicate-ID scan, and classification switch, plus Aseza Patiwe's Delete flow and Summary counters and averages. Shared validation, storage infrastructure, and the current UI were added during consolidation. Feature ownership is listed in the README.
 
 ## Shared contract
 

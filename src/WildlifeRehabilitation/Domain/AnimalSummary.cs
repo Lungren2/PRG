@@ -10,7 +10,7 @@ public static class AnimalSummary
     public static string Create(AnimalDocument document, DateTime generatedAt)
     {
         // Adapted from Aseza Patiwe's frmSummaryReport.btnSummary_Click totals and five status counters.
-        // Original: reference/delete-summary/frmSummaryReport.cs. Load has already validated records.
+        // Original source is in Git history. Load has already validated records.
         int totalAnimals = document.Records.Count;
         long totalAge = 0;
         long totalScore = 0;

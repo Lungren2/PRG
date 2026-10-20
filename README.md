@@ -29,12 +29,10 @@ dotnet run --project tests/WildlifeRehabilitation.Checks -c Release --no-build
 
 | Feature | Owner | Student number |
 | --- | --- | --- |
-| [Add and validation](docs/add-animal.md) | [Tian Heydenrych](https://github.com/b0su1l) | 577481 |
+| Add and validation | Tian Heydenrych | 577481 |
 | [View and file loading](docs/view-animals.md) | [Nkosinathi Mathenjwa](https://github.com/Nkosinathi-bit) | 604435 |
 | Update and integration | [Ethan Ogle](https://github.com/Lungren2) | 602114 |
-| [Delete and Summary](docs/delete-summary.md) | [Aseza Patiwe](https://github.com/holiqtears) | 605131 |
-
-The linked code maps show the original source, reused logic, and integration changes.
+| Delete and Summary | Aseza Patiwe | 605131 |
 
 ## Limitations and recovery
 

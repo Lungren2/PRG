@@ -26,7 +26,7 @@ This contribution adds the supplied Main Menu, connects it to the existing featu
 5. Opening View all animals calls `RefreshAnimals`. It clears old rows, loops through the new list, and adds each record once. A status label reports the loaded and skipped counts.
 6. Existing Update and Delete save handlers call the same refresh method after success. Adding from the shared editor refreshes its grid; opening View from the menu reads the same file. Repeated refreshes replace the old rows, so they cannot duplicate them.
 
-The code uses classes, text-file handling, collections, loops, `TryParse`, error handling, and `DataGridView`. The shared file store continues to protect writes with its existing lock, temporary file, backup, and conflict checks. Tian's classification and Add logic, Ethan's Update integration, and Aseza's Delete and Summary logic are reused. Original reference source is unchanged.
+The code uses classes, text-file handling, collections, loops, `TryParse`, error handling, and `DataGridView`. The shared file store continues to protect writes with its existing lock, temporary file, backup, and conflict checks. Tian's classification and Add logic, Ethan's Update integration, and Aseza's Delete and Summary logic are reused. Original source is retained in Git history.
 
 ## Manual demonstration
 

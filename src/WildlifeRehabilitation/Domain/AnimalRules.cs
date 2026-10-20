@@ -9,7 +9,7 @@ public static partial class AnimalRules
     [GeneratedRegex(@"^WR-[0-9]{4}$", RegexOptions.CultureInvariant)]
     private static partial Regex IdPattern();
 
-    // Adapted from Tian's Classes.TextWriter switch. Original: reference/tian-add/Classes.cs.
+    // Adapted from Tian's Classes.TextWriter switch; original source is in Git history.
     // Add and Update share this one copy; the Serious range now includes score 39.
     public static (string Status, string HousingUnit) Classify(int animalRecoveryScore)
     {
