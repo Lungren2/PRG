@@ -60,6 +60,29 @@ public sealed partial class AnimalFileStore
         SaveAnimals(original + separator + AnimalRules.Serialize(animal) + Environment.NewLine);
     }
 
+    public void Update(StoredAnimal expected, Animal replacement)
+    {
+        replacement = ValidateForSave(replacement);
+        if (replacement.Id != expected.Animal.Id)
+            throw new AnimalConflictException("An animal ID cannot be changed during an update.");
+        using var guard = AcquireWriter();
+        var document = ReadDocument();
+        var target = FindCurrentRecord(document, expected);
+        var lines = document.Lines.ToArray();
+        lines[target.LineIndex] = lines[target.LineIndex] with { Content = AnimalRules.Serialize(replacement) };
+        SaveAnimals(JoinLines(lines));
+    }
+
+    private static StoredAnimal FindCurrentRecord(AnimalDocument document, StoredAnimal expected)
+    {
+        if (document.Lines.Count(line => RawId(line) == expected.Animal.Id) != 1)
+            throw new AnimalConflictException("The record is missing or its ID appears more than once. Cancel, repair duplicate IDs if necessary, and refresh.");
+        var current = document.Records.SingleOrDefault(record => record.Animal.Id == expected.Animal.Id);
+        if (current is null || current.RawLine != expected.RawLine)
+            throw new AnimalConflictException("This record changed after it was loaded. Cancel and refresh before trying again.");
+        return current;
+    }
+
     private static Animal ValidateForSave(Animal animal)
     {
         var draft = new AnimalDraft(animal.Id, animal.Name, animal.Species,
