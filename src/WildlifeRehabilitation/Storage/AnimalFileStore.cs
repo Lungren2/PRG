@@ -52,7 +52,7 @@ public sealed partial class AnimalFileStore
         animal = ValidateForSave(animal);
         using var guard = AcquireWriter();
         var document = ReadDocument();
-        // Adapted from Tian's Classes.TextWriter duplicate-ID scan.
+        // Adapted from Classes.TextWriter duplicate-ID scan.
         // Check raw lines too, so an invalid record cannot give its ID to a new animal.
         bool exists = false;
         foreach (var line in document.Lines)
@@ -89,7 +89,7 @@ public sealed partial class AnimalFileStore
         using var guard = AcquireWriter();
         var document = ReadDocument();
         var target = FindCurrentRecord(document, expected);
-        // Adapted from Aseza Patiwe's frmDelete.btnDelete_Click list/RemoveAll/write sequence.
+        // Adapted from frmDelete.btnDelete_Click list/RemoveAll/write sequence.
         // FindCurrentRecord first proves the selected ID is unique and the record unchanged.
         string selectedID = target.Animal.Id;
         var lines = document.Lines.ToList();
