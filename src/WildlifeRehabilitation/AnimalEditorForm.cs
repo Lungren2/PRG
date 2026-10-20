@@ -77,7 +77,7 @@ public sealed class AnimalEditorForm : WindowsBackdropForm
     private TextBox AddField(TableLayoutPanel layout, string label, string name, string initial, int row)
     {
         layout.Controls.Add(new Label { Text = label, AutoSize = true, ForeColor = DesktopTheme.Muted, Anchor = AnchorStyles.Left, Margin = new Padding(0, 0, 16, 12) }, 0, row);
-        var field = new TextBox { Name = name, AccessibleName = name, Text = initial, Dock = DockStyle.Top, Margin = new Padding(0, 0, 16, 12), MaxLength = name is "Name" or "Species" ? 80 : 20 };
+        var field = new TextBox { Name = name, AccessibleName = name, Text = initial, Dock = DockStyle.Top, Margin = new Padding(0, 0, 16, 12), MaxLength = name is "Name" or "Species" ? 30 : 20 };
         DesktopTheme.Style(field);
         fields.Add(name, field);
         layout.Controls.Add(field, 1, row);
