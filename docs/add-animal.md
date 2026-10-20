@@ -1,6 +1,6 @@
 # Add animal: source and code map
 
-Tian wrote the original Add project. The working app adapts his field handling, duplicate-ID scan, and five-case recovery classification switch. Integration added shared validation, a common file format, safer file writes, and the current UI. Those additions should not be attributed to Tian's original project.
+Tian Heydenrych wrote the original Add project and owns Add animal and validation. The working app adapts his field handling, duplicate-ID scan, and five-case recovery classification switch. Integration added shared validation, a common file format, safer file writes, and the current UI. Those additions should not be attributed to Tian's original project.
 
 His unchanged [original files](../reference/tian-add/README.md) are included for comparison and appear under **Tian Add source** in Visual Studio.
 

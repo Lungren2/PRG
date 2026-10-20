@@ -1,6 +1,6 @@
 # Tian's original Add source
 
-Tian wrote this Add project before consolidation. These three files are unchanged copies from `AddUserInterface (3)/AddUserInterface`, also imported in commit `a718eb51255279cbd4a8a6dc3ae318711014808c` under `src/AddUserInterface`.
+Tian Heydenrych wrote this Add project before consolidation. These three files are unchanged copies from `AddUserInterface (3)/AddUserInterface`, also imported in commit `a718eb51255279cbd4a8a6dc3ae318711014808c` under `src/AddUserInterface`.
 
 - `Form1.Designer.cs` defines the five text boxes and Add/Back buttons.
 - `Form1.cs` reads the fields in `btnAdd_Click` and calls `Classes.TextWriter`.
