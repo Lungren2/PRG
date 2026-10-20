@@ -16,11 +16,11 @@ His unchanged [original files](../reference/tian-add/README.md) are included for
 
 ## Follow one save
 
-1. `MainForm.AddAnimal` opens the editor with a suggested ID and supplies `store.Append` as its save callback.
+1. `MainMenuForm.AddAnimal` opens the editor with a suggested ID and supplies `store.Append` as its save callback.
 2. `btnSave_Click` reads the five text boxes into an `AnimalDraft`.
 3. `AnimalRules.TryCreate` validates the draft and creates an `Animal`. Its `Status` and `HousingUnit` properties call Tian's adapted `Classify` switch.
 4. `Append` locks the file and checks each raw line for a duplicate ID. It serializes the new animal and publishes the updated file with a backup.
-5. Success closes the editor. `MainForm` reloads the grid and selects the added animal. Validation, duplicate, or file errors leave the fields available to correct and retry.
+5. Success closes the editor. `MainMenuForm` reloads the file count; View all animals reads the saved file when opened. Validation, duplicate, or file errors leave the fields available to correct and retry.
 
 For example, score `39` follows the Serious case and produces `High-Dependency Ward`. After saving, `animals.txt` contains:
 
@@ -31,8 +31,8 @@ WR-0011|Kaya|Serval|3|39|Serious|High-Dependency Ward
 ## Integration decisions to explain
 
 - Numeric IDs and comma-separated records became `WR-0001` IDs and pipe-separated records so every feature reads the same data.
-- `animals.txt` lives beside the executable. First launch creates starter records, rather than depending on the working directory.
+- `animals.txt` lives beside the executable. The build copies the committed starter file if newer; the loader creates an empty file when it is missing at runtime.
 - Successful saves close the editor and refresh the grid. The original stayed open and cleared its fields.
 - Failed saves preserve input and report the error. The original could clear fields after a duplicate and always displayed `Done`.
 
-Run `Run.cmd` to try this flow. Add an animal with score 39, then try its ID again to see the duplicate check without losing your entered fields. Cancel returns to the grid. If a file is locked, close the program holding it and retry Save.
+Run `Run.cmd` and choose Add new animal to try this flow. Add an animal with score 39, then try its ID again to see the duplicate check without losing your entered fields. Cancel returns to the Main Menu. If a file is locked, close the program holding it and retry Save.
