@@ -27,3 +27,4 @@ summary.txt
 # Operating system files
 Thumbs.db
 .DS_Store
+*.sh
