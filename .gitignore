@@ -1,0 +1,28 @@
+# Visual Studio and build output
+.vs/
+[Bb]in/
+[Oo]bj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.log
+
+# Original imports kept locally as backups
+/AddUserInterface (3)/
+/DeleteUserInterface/
+
+# Runtime data and generated reports
+animals.txt
+summary.txt
+
+# Local secrets and signing keys
+.env
+.env.*
+!.env.example
+*.pfx
+*.p12
+
+# Operating system files
+Thumbs.db
+.DS_Store
