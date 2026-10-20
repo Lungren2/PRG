@@ -14,7 +14,7 @@ dotnet run --project src/WildlifeRehabilitation
 
 ## Use
 
-The register opens with starter data loaded. Add animals, click a row or Search by ID to update, Clear to leave edit mode, and Delete with confirmation. Generate Summary shows totals, averages, and all five status counts. Main Menu opens Nkosinathi's supplied menu and its five feature pages; a page's Main Menu button returns to that menu.
+The register opens with starter data loaded. Add animals, click a row or Search by ID to update, Clear to leave edit mode, and Delete with confirmation. Generate Summary shows totals, averages, and all five status counts. Main Menu opens the five feature pages; a page's Main Menu button returns to that menu.
 
 Both files are UTF-8 beside the executable. `animals.txt` has seven pipe-separated fields: `ID|Name|Species|Age|Score|Status|Housing Unit`. The committed ten-record starter is copied if newer during builds. A missing runtime file is created empty. `summary.txt` is overwritten with the specified dated totals, two-decimal averages, and five status counts.
 
@@ -30,8 +30,8 @@ dotnet run --project tests/WildlifeRehabilitation.Checks -c Release --no-build
 | Feature | Owner | Student number |
 | --- | --- | --- |
 | Add and validation | Tian Heydenrych | 577481 |
-| [View and file loading](docs/view-animals.md) | [Nkosinathi Mathenjwa](https://github.com/Nkosinathi-bit) | 604435 |
-| Update and integration | [Ethan Ogle](https://github.com/Lungren2) | 602114 |
+| View and file loading | Nkosinathi Mathenjwa | 604435 |
+| Update and integration | Ethan Ogle | 602114 |
 | Delete and Summary | Aseza Patiwe | 605131 |
 
 ## Limitations and recovery
