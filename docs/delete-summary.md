@@ -12,7 +12,7 @@ The unchanged [original source](../reference/delete-summary/README.md) appears u
 | `lines.RemoveAll`, then `File.WriteAllLines` | [AnimalFileStore.cs](../src/WildlifeRehabilitation/Storage/AnimalFileStore.cs): `Delete` | Retains list removal by selected ID. First locks the file and rejects stale or duplicate selections. Writes atomically, preserving other lines and a backup. |
 | `frmSummaryReport.btnSummary_Click`: totals, loop, five counters, averages | [AnimalSummary.cs](../src/WildlifeRehabilitation/Domain/AnimalSummary.cs): `Create` | Retains the named counters and loop. Reads validated animals from the shared loader; totals use `long` to avoid integer overflow. |
 | `rtbSummary.Text`, then saving `summary.txt` | [SummaryForm.cs](../src/WildlifeRehabilitation/SummaryForm.cs): `btnSummary_Click` and `rtbSummary` | Retains the handler/control names. Calculation and file writing have separate owners. If saving fails, the report stays visible with an error. |
-| `btnGoToSummary_Click` and `btnBackToMain_Click` | MainForm's Summary action and SummaryForm's Close button | A modal report returns to the existing register without opening another Delete window. |
+| `btnGoToSummary_Click` and `btnBackToMain_Click` | MainMenuForm's Summary report action and SummaryForm's Close button | A modal report returns to the Main Menu without opening another Delete window. |
 
 ## Follow a delete
 
@@ -28,4 +28,4 @@ The unchanged [original source](../reference/delete-summary/README.md) appears u
 
 The original `totalAnimals`, `totalAge`, `totalScore`, and five status counters remain recognizable. The loop counts only records accepted by the shared loader. This fixes the original denominator, which counted malformed nonblank lines even when their age and score did not contribute. Empty reports still show `N/A` averages and all five zero counts. Nonempty averages use invariant formatting with two decimal places.
 
-Run `Run.cmd`, select an animal, and choose Delete selected. Check the ID/name, cancel once, then confirm a delete. Open Summary report to see the new totals and matching `summary.txt`. Locked-file or permission errors leave the data intact and show a message to correct before retrying.
+Run `Run.cmd`, choose Remove an animal, select a row, and choose Delete selected. Check the ID/name, cancel once, then confirm a delete. Return to the menu and open Summary report to see the new totals and matching `summary.txt`. Locked-file or permission errors leave the data intact and show a message to correct before retrying.

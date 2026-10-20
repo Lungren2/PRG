@@ -5,11 +5,11 @@ The application uses .NET 8 Windows Forms. The original projects are preserved i
 ## Shared contract
 
 - One immutable `Animal` record has ID, name, species, whole-year age, and recovery score. Status and housing are computed by `AnimalRules.Classify`.
-- IDs use `WR-0001` through `WR-9999`. Names and species are required, at most 80 characters, and cannot contain pipes or control characters. Age is a nonnegative integer. Score is an integer from 0 to 100.
+- IDs use `WR-` followed by exactly four digits, including `WR-0000`. Names and species are required, at most 30 characters, and cannot contain pipes or control characters. Age and score are whole numbers from 0 to 100.
 - Score ranges are inclusive: 0–19 Critical, 20–39 Serious, 40–59 Stable, 60–79 Recovering, and 80–100 Release-Ready.
 - UTF-8 records use `ID|Name|Species|Age|RecoveryScore|Status|HousingUnit`. Both forms use the same parser, validation, and classification.
-- `AppContext.BaseDirectory` owns `animals.txt` and `summary.txt`, regardless of the current working directory. A missing animal file is created with ten starter records across all five statuses. An existing empty file stays empty.
-- Blank lines are ignored. Malformed records, inconsistent classification, and repeated IDs are skipped and counted. Mutations preserve their raw lines. A stale or ambiguous selection cannot silently overwrite another record.
+- `AppContext.BaseDirectory` owns `animals.txt` and `summary.txt`, regardless of the current working directory. The committed `animals.txt` has ten starters across all five statuses and is copied to output if newer. At runtime, a missing file is created empty. An existing empty file stays empty.
+- Blank lines, malformed records, inconsistent classification, and repeated IDs are skipped and counted. Mutations preserve their raw lines. A stale or ambiguous selection cannot silently overwrite another record.
 - File operations fail once with actionable feedback. No automatic retry occurs. Inputs remain open after failed saves. A successful mutation refreshes the grid.
 - Application writers acquire an exclusive sidecar file handle. Process exit releases the handle. Writes publish through a same-directory temporary UTF-8 file and atomic replacement, with `animals.backup.txt` retaining the previous animal file. External editors must close the file before changes. A lock or permission error leaves the current file unchanged.
 
@@ -23,13 +23,13 @@ The precedent is Microsoft's small-record DataGridView sample, which supports se
 - SHA-256: `9BCE72EFB6737453C6B0420C08E4E45B7A4B99AA0063050E7675AA6AAAD6C4E9`
 - Code license: MIT, retained in `THIRD-PARTY-NOTICES.txt`.
 - Mapping: the upstream file was copied to `src/WildlifeRehabilitation/MainForm.cs` before adaptation. `SetupDataGridView` retains the unbound rows, full-row single selection, hidden row headers, docked grid, and explicit action controls.
-- Assignment changes: seven animal columns replace song columns; the grid is read-only; file loading replaces inline samples; Add and Update use a modal editor; Delete confirms before writing; Summary opens a modal report. Native keyboard focus and grid scrolling remain. A resizable layout replaces fixed coordinates so the seven required fields stay usable.
+- Assignment changes: seven animal columns replace song columns; the grid is read-only; file loading replaces inline samples; Add and Update use a modal editor; Delete confirms before writing; Summary opens a modal report. The supplied Main Menu now opens first, loads the file, and links to every feature. Back closes a feature and returns to the menu. Native keyboard focus and grid scrolling remain. A resizable layout keeps the seven required fields usable. See the [View and loading code map](view-animals.md).
 
 The blank WinForms foundation was committed before feature implementation. Feature branches are merged in view, add, update, delete, summary order. This order establishes the shared model and loading contract before writes.
 
 ## Desktop appearance
 
-The existing grid and modal workflow use a shared light theme, Segoe UI typography, a teal primary action, and readable status colors. Standard Windows controls preserve keyboard access. High-contrast mode uses system colors.
+The Main Menu and animal-grid pages follow the supplied interface: white backgrounds, black borders, labelled buttons, the provided koala, and a Back action. The existing Add/Update editor and Summary report retain their shared light theme and save/report behaviour. Standard Windows controls preserve keyboard access.
 
 `WindowsBackdropForm` applies the documented Windows 11 desktop acrylic backdrop to the title bar and outer frame. Content surfaces stay opaque. Windows 10, unsupported APIs, and offscreen child-form previews use a soft gradient frame. High-contrast startup uses system colors. Window opacity and color-key transparency are never changed.
 
