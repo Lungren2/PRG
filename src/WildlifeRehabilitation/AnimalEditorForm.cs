@@ -7,6 +7,12 @@ namespace WildlifeRehabilitation;
 public sealed class AnimalEditorForm : WindowsBackdropForm
 {
     private readonly Dictionary<string, TextBox> fields = new();
+    // Tian's original Form1 field names, retained for tracing Add during presentations.
+    private readonly TextBox txtID;
+    private readonly TextBox txtName;
+    private readonly TextBox txtSpecies;
+    private readonly TextBox txtAge;
+    private readonly TextBox txtRecoveryScore;
     private readonly ErrorProvider errors;
     private readonly Label classification = new() { AutoSize = true, MaximumSize = new Size(420, 0) };
     private readonly Label feedback = new() { AutoSize = true, ForeColor = Color.Maroon, MaximumSize = new Size(420, 0) };
@@ -29,11 +35,11 @@ public sealed class AnimalEditorForm : WindowsBackdropForm
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         for (var index = 0; index < 7; index++) layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        AddField(layout, "Animal &ID", nameof(initial.Id), initial.Id, 0);
-        AddField(layout, "&Name", nameof(initial.Name), initial.Name, 1);
-        AddField(layout, "&Species", nameof(initial.Species), initial.Species, 2);
-        AddField(layout, "&Age in years", nameof(initial.Age), initial.Age, 3);
-        AddField(layout, "&Recovery score (0-100)", nameof(initial.RecoveryScore), initial.RecoveryScore, 4);
+        txtID = AddField(layout, "Animal &ID", nameof(initial.Id), initial.Id, 0);
+        txtName = AddField(layout, "&Name", nameof(initial.Name), initial.Name, 1);
+        txtSpecies = AddField(layout, "&Species", nameof(initial.Species), initial.Species, 2);
+        txtAge = AddField(layout, "&Age in years", nameof(initial.Age), initial.Age, 3);
+        txtRecoveryScore = AddField(layout, "&Recovery score (0-100)", nameof(initial.RecoveryScore), initial.RecoveryScore, 4);
         fields[nameof(initial.Id)].ReadOnly = lockId;
         fields[nameof(initial.Id)].TabStop = !lockId;
         if (lockId) fields[nameof(initial.Id)].BackColor = DesktopTheme.Canvas;
@@ -55,7 +61,7 @@ public sealed class AnimalEditorForm : WindowsBackdropForm
         var saveButton = new DesktopButton { Text = "&Save" };
         DesktopTheme.Style(cancel);
         DesktopTheme.Style(saveButton, primary: true);
-        saveButton.Click += (_, _) => SaveAnimal();
+        saveButton.Click += btnSave_Click;
         buttons.Controls.Add(cancel);
         buttons.Controls.Add(saveButton);
         layout.Controls.Add(buttons, 0, 7);
@@ -68,18 +74,19 @@ public sealed class AnimalEditorForm : WindowsBackdropForm
         Shown += (_, _) => fields[lockId ? nameof(initial.Name) : nameof(initial.Id)].Focus();
     }
 
-    private void AddField(TableLayoutPanel layout, string label, string name, string initial, int row)
+    private TextBox AddField(TableLayoutPanel layout, string label, string name, string initial, int row)
     {
         layout.Controls.Add(new Label { Text = label, AutoSize = true, ForeColor = DesktopTheme.Muted, Anchor = AnchorStyles.Left, Margin = new Padding(0, 0, 16, 12) }, 0, row);
         var field = new TextBox { Name = name, AccessibleName = name, Text = initial, Dock = DockStyle.Top, Margin = new Padding(0, 0, 16, 12), MaxLength = name is "Name" or "Species" ? 80 : 20 };
         DesktopTheme.Style(field);
         fields.Add(name, field);
         layout.Controls.Add(field, 1, row);
+        return field;
     }
 
     private void UpdateClassification()
     {
-        if (int.TryParse(fields[nameof(AnimalDraft.RecoveryScore)].Text, NumberStyles.None, CultureInfo.InvariantCulture, out var score) && score <= 100)
+        if (int.TryParse(txtRecoveryScore.Text, NumberStyles.None, CultureInfo.InvariantCulture, out var score) && score <= 100)
         {
             var result = AnimalRules.Classify(score);
             classification.Text = $"{result.Status} / {result.HousingUnit}";
@@ -87,11 +94,13 @@ public sealed class AnimalEditorForm : WindowsBackdropForm
         else classification.Text = "Enter a valid score to preview status and housing.";
     }
 
-    private void SaveAnimal()
+    // Adapted from Tian's Form1.btnAdd_Click. Shared validation replaces int.Parse;
+    // the save callback is Append for Add and Update for an existing record.
+    private void btnSave_Click(object? sender, EventArgs e)
     {
         errors.Clear();
         feedback.Text = "";
-        var draft = new AnimalDraft(fields["Id"].Text, fields["Name"].Text, fields["Species"].Text, fields["Age"].Text, fields["RecoveryScore"].Text);
+        var draft = new AnimalDraft(txtID.Text, txtName.Text, txtSpecies.Text, txtAge.Text, txtRecoveryScore.Text);
         if (!AnimalRules.TryCreate(draft, out var animal, out var problems))
         {
             foreach (var problem in problems) errors.SetError(fields[problem.Key], problem.Value);

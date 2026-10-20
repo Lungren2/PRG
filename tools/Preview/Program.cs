@@ -35,20 +35,53 @@ internal static class Program
         });
         Render(new MainForm(), new Size(980, 500), "animal-records-compact.png", output);
         Animal? saved = null;
-        Render(new AnimalEditorForm("Add animal", new AnimalDraft("WR-0011", "Kaya", "Serval", "3", "39"), animal => saved = animal),
+        Render(new AnimalEditorForm("Add animal", new AnimalDraft("WR-0011", "Kaya", "Serval", "3", "39"), animal =>
+        {
+            store.Append(animal);
+            saved = animal;
+        }),
             new Size(590, 430), "animal-editor.png", output, form =>
         {
             if (form.AcceptButton is not Button save) throw new Exception("The editor needs a keyboard default Save action.");
+            var inputs = Descendants(form).OfType<TextBox>().ToDictionary(field => field.Name);
+            var before = File.ReadAllText(store.DataPath);
+            inputs["Name"].Text = "";
             save.PerformClick();
-            if (saved?.Status != "Serious") throw new Exception("The rendered editor did not validate and save score 39.");
+            if (saved != null || !form.Visible || inputs["Species"].Text != "Serval" || File.ReadAllText(store.DataPath) != before)
+                throw new Exception("Invalid Add must preserve the form, other inputs, and file contents.");
+            inputs["Name"].Text = "Kaya";
+            inputs["Id"].Text = store.Load().Records[0].Animal.Id;
+            save.PerformClick();
+            if (saved != null || !form.Visible || inputs["Name"].Text != "Kaya" || File.ReadAllText(store.DataPath) != before ||
+                !Descendants(form).OfType<Label>().Any(label => label.Text.Contains("already exists")))
+                throw new Exception("Duplicate Add must report the conflict and preserve the entered fields and file.");
+            inputs["Id"].Text = "WR-0011";
+            save.PerformClick();
+            if (saved != new Animal("WR-0011", "Kaya", "Serval", 3, 39) || saved?.Status != "Serious" ||
+                store.Load().Records.Last().Animal != saved || form.DialogResult != DialogResult.OK)
+                throw new Exception("The rendered Add handler did not save the five fields and score-39 classification to disk.");
+        });
+        var selected = store.Load().Records.Last();
+        Render(new AnimalEditorForm("Update WR-0011", new AnimalDraft("WR-0011", "Kaya", "Serval", "3", "39"),
+            animal => store.Update(selected, animal), lockId: true),
+            new Size(590, 430), "animal-editor-update.png", output, form =>
+        {
+            var inputs = Descendants(form).OfType<TextBox>().ToDictionary(field => field.Name);
+            if (!inputs["Id"].ReadOnly) throw new Exception("Update must keep the selected ID read-only.");
+            inputs["Name"].Text = "Kaya updated";
+            inputs["RecoveryScore"].Text = "40";
+            ((Button)form.AcceptButton!).PerformClick();
+            var updated = store.Load().Records.Single(record => record.Animal.Id == "WR-0011").Animal;
+            if (updated.Name != "Kaya updated" || updated.Status != "Stable" || store.Load().Records.Count != 11)
+                throw new Exception("The shared editor did not update the selected animal using the shared classification.");
         });
         Render(new SummaryForm(store), new Size(800, 560), "animal-summary.png", output, form =>
         {
             var report = Descendants(form).OfType<RichTextBox>().Single();
-            if (!report.Text.Contains("Total animals: 10") || !File.Exists(store.SummaryPath))
+            if (!report.Text.Contains("Total animals: 11") || !File.Exists(store.SummaryPath))
                 throw new Exception("The rendered summary did not generate and save its report.");
         });
-        Console.WriteLine("Rendered four previews. Live view, editor save, and summary form checks passed.");
+        Console.WriteLine("Rendered five previews. View, Add validation/duplicate/save, Update, and summary form checks passed.");
     }
 
     private static void Render(Form form, Size size, string name, string output, Action<Form>? check = null)

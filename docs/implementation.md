@@ -1,6 +1,6 @@
 # Integration decisions
 
-The application uses .NET 8 Windows Forms. The original projects are preserved in Git history and in the existing local import folders. The active solution replaces their UI and file code.
+The application uses .NET 8 Windows Forms. The original projects are preserved in Git history and in the existing local import folders. The active app adapts Tian's Add field handling, duplicate-ID scan, and classification switch. [Add source and code map](add-animal.md) records the credit and integration changes. Other UI and file infrastructure was rewritten during consolidation.
 
 ## Shared contract
 

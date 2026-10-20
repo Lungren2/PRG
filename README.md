@@ -25,4 +25,6 @@ dotnet build PRG272.sln -c Release
 dotnet run --project tests/WildlifeRehabilitation.Checks -c Release --no-build
 ```
 
-See [data rules and recovery](docs/implementation.md) for details. Each feature has its own branch and merged pull request. The original projects remain in Git history.
+Tian wrote the original Add project. See [his source and the current Add flow](docs/add-animal.md) for the reused code and integration changes.
+
+See [data rules and recovery](docs/implementation.md) for details. Each feature has its own branch and merged pull request.
