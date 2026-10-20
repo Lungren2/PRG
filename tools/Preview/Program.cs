@@ -136,12 +136,20 @@ internal static class Program
     // Exercises a real menu button and uses the opened form's Back/Cancel action to return.
     private static void CheckMenuNavigation(Form menu, string buttonName, Type expectedType, string expectedTitle)
     {
+        Console.WriteLine("Checking menu route: " + buttonName);
+        using var watchdog = new System.Threading.Timer(_ =>
+        {
+            Console.Error.WriteLine("Timed out closing the feature opened by " + buttonName);
+            Environment.Exit(1);
+        }, null, TimeSpan.FromSeconds(15), Timeout.InfiniteTimeSpan);
         Exception? failure = null;
         var closed = false;
         using var timer = new System.Windows.Forms.Timer { Interval = 50 };
         timer.Tick += (_, _) =>
         {
-            var dialog = menu.OwnedForms.FirstOrDefault(form => form.Visible);
+            // ShowDialog can use the top-level preview host as owner when the menu is embedded.
+            var dialog = Application.OpenForms.Cast<Form>().FirstOrDefault(form =>
+                form.TopLevel && form.Visible && form is MainForm or AnimalEditorForm or SummaryForm);
             if (dialog == null) return;
             timer.Stop();
             if (dialog.GetType() != expectedType || dialog.Text != expectedTitle)
