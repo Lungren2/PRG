@@ -9,7 +9,7 @@ static class Program
     static void Main()
     {
         // To customize application configuration such as set high DPI settings or default font,
-        // see https://aka.ms/applicationconfiguration.
+        // see https://aka.ms/applicationconfiguration. This is a reference from Microsoft Learn.
         ApplicationConfiguration.Initialize();
         Application.Run(new MainMenuForm());
     }    
