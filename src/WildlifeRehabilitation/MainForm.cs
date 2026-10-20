@@ -82,7 +82,7 @@ public sealed class MainForm : Form
         Shown += (_, _) => RefreshAnimals();
     }
 
-    // Adapted from Aseza Patiwe's frmDelete.btnDelete_Click. Original: reference/delete-summary/frmDelete.cs.
+    // Aseza Patiwe's frmDelete.btnDelete_Click.
     // Keep selection -> confirmation -> removal; refresh instead of closing the startup form.
     private void btnDelete_Click(object? sender, EventArgs e)
     {
@@ -105,7 +105,7 @@ public sealed class MainForm : Form
         catch (Exception exception) when (UiErrors.IsFileError(exception)) { UiErrors.Show(this, exception); }
     }
 
-    // Passes the selected record to Ethan's existing shared editor and refreshes after saving.
+    // Passes the selected record to existing shared editor and refreshes after saving.
     private void EditSelected()
     {
         var selected = SelectedRecord;
