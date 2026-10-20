@@ -8,8 +8,10 @@ public class WindowsBackdropForm : Form
 {
     public bool NativeBackdropActive { get; private set; }
 
+    // Reserves an outer frame for the optional native acrylic backdrop.
     public WindowsBackdropForm() => Padding = new Padding(12);
 
+    // Enables supported Windows 11 acrylic and falls back safely on older/high-contrast systems.
     protected override void OnHandleCreated(EventArgs e)
     {
         base.OnHandleCreated(e);
@@ -33,6 +35,7 @@ public class WindowsBackdropForm : Form
         }
     }
 
+    // Paints the DWM-compatible frame or the opaque fallback without making inputs transparent.
     protected override void OnPaintBackground(PaintEventArgs e)
     {
         if (NativeBackdropActive)
@@ -60,15 +63,19 @@ public class WindowsBackdropForm : Form
     [StructLayout(LayoutKind.Sequential)]
     private struct NativeRectangle { public int Left, Top, Right, Bottom; }
 
+    // Gets Windows' black brush for the zero-alpha DWM frame.
     [DllImport("gdi32.dll", ExactSpelling = true)]
     private static extern IntPtr GetStockObject(int objectIndex);
 
+    // Fills the native frame rectangle without painting over child controls.
     [DllImport("user32.dll", ExactSpelling = true)]
     private static extern int FillRect(IntPtr context, ref NativeRectangle rectangle, IntPtr brush);
 
+    // Requests a documented Windows desktop-window attribute.
     [DllImport("dwmapi.dll", ExactSpelling = true)]
     private static extern int DwmSetWindowAttribute(IntPtr window, int attribute, ref int value, int size);
 
+    // Extends the compositor's frame into the form's reserved border.
     [DllImport("dwmapi.dll", ExactSpelling = true)]
     private static extern int DwmExtendFrameIntoClientArea(IntPtr window, ref Margins margins);
 }

@@ -14,7 +14,7 @@
 
 # Runtime data and generated reports
 animals.txt
-!/src/WildlifeRehabilitation/animals.txt
+!src/WildlifeRehabilitation/animals.txt
 summary.txt
 
 # Local secrets and signing keys

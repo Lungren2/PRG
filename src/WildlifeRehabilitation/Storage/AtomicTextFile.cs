@@ -2,6 +2,7 @@ namespace WildlifeRehabilitation.Storage;
 
 internal static class AtomicTextFile
 {
+    // Flushes a same-folder temporary file, publishes it atomically, and cleans up on failure.
     public static void Write(string path, string text, bool replaceExisting, string? backupPath = null)
     {
         var temporaryPath = Path.Combine(Path.GetDirectoryName(path)!, ".prg272-" + Guid.NewGuid().ToString("N") + ".tmp");

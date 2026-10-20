@@ -9,15 +9,18 @@ internal sealed class DesktopButton : Button
     private bool pressed;
     public bool Primary { get; set; }
 
+    // Enables buffered custom painting while retaining the standard Button interaction.
     public DesktopButton() => SetStyle(ControlStyles.AllPaintingInWmPaint |
         ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw | ControlStyles.UserPaint, true);
 
+    // Reserves enough height for the caption, focus indicator, and raised button face.
     public override Size GetPreferredSize(Size proposedSize)
     {
         var size = base.GetPreferredSize(proposedSize);
         return new Size(Math.Max(72, size.Width), Math.Max(36, Font.Height + Padding.Vertical + 8));
     }
 
+    // Paints the raised face, pressed state, caption, and keyboard focus without changing actions.
     protected override void OnPaint(PaintEventArgs e)
     {
         if (SystemInformation.HighContrast) { base.OnPaint(e); return; }
@@ -53,6 +56,7 @@ internal sealed class DesktopButton : Button
         if (Focused && ShowFocusCues) ControlPaint.DrawFocusRectangle(graphics, Rectangle.Inflate(face, -5, -5), ForeColor, top);
     }
 
+    // Creates the small rounded outline used by the face, shadow, and border.
     private static GraphicsPath Rounded(Rectangle bounds, int radius)
     {
         var path = new GraphicsPath();
@@ -65,13 +69,22 @@ internal sealed class DesktopButton : Button
         return path;
     }
 
+    // Repaints the hover highlight when the pointer enters.
     protected override void OnMouseEnter(EventArgs e) { hovered = true; base.OnMouseEnter(e); Invalidate(); }
+    // Removes hover and pressed feedback when the pointer leaves.
     protected override void OnMouseLeave(EventArgs e) { hovered = pressed = false; base.OnMouseLeave(e); Invalidate(); }
+    // Depresses the face only for a left-button press.
     protected override void OnMouseDown(MouseEventArgs e) { pressed = e.Button == MouseButtons.Left; base.OnMouseDown(e); Invalidate(); }
+    // Releases the visual pressed state without replacing the standard click event.
     protected override void OnMouseUp(MouseEventArgs e) { pressed = false; base.OnMouseUp(e); Invalidate(); }
+    // Shows the pressed face while the standard Space-key action is held.
     protected override void OnKeyDown(KeyEventArgs e) { if (e.KeyCode == Keys.Space) pressed = true; base.OnKeyDown(e); Invalidate(); }
+    // Clears keyboard pressed feedback after key release.
     protected override void OnKeyUp(KeyEventArgs e) { pressed = false; base.OnKeyUp(e); Invalidate(); }
+    // Repaints the standard keyboard focus indicator on focus entry.
     protected override void OnGotFocus(EventArgs e) { base.OnGotFocus(e); Invalidate(); }
+    // Removes pressed and focus feedback when keyboard focus leaves.
     protected override void OnLostFocus(EventArgs e) { pressed = false; base.OnLostFocus(e); Invalidate(); }
+    // Repaints disabled or enabled colors when availability changes.
     protected override void OnEnabledChanged(EventArgs e) { base.OnEnabledChanged(e); Invalidate(); }
 }

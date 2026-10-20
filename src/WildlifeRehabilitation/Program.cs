@@ -8,9 +8,8 @@ static class Program
     [STAThread]
     static void Main()
     {
-        // To customize application configuration such as set high DPI settings or default font,
-        // see https://aka.ms/applicationconfiguration. This is a reference from Microsoft Learn.
+        // Configure WinForms before launch; Microsoft Learn reference: https://aka.ms/applicationconfiguration.
         ApplicationConfiguration.Initialize();
-        Application.Run(new MainMenuForm());
-    }    
+        Application.Run(new MainForm());
+    }
 }

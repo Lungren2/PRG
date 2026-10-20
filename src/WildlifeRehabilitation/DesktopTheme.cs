@@ -13,6 +13,7 @@ internal static class DesktopTheme
     public static readonly Font BodyFont = new("Segoe UI", 10F);
     public static readonly Font StrongFont = new("Segoe UI Semibold", 10F);
 
+    // Applies the shared DPI, font, and high-contrast-aware colors to a form.
     public static void Apply(Form form)
     {
         form.AutoScaleDimensions = new SizeF(96F, 96F);
@@ -22,6 +23,7 @@ internal static class DesktopTheme
         form.ForeColor = Ink;
     }
 
+    // Sets button sizing, colors, and native keyboard behavior consistently.
     public static void Style(Button button, bool primary = false, bool danger = false)
     {
         button.FlatStyle = SystemInformation.HighContrast ? FlatStyle.Standard : FlatStyle.Flat;
@@ -41,6 +43,7 @@ internal static class DesktopTheme
         button.Margin = new Padding(0, 0, 8, 4);
     }
 
+    // Gives editable fields a recessed Windows border and readable text.
     public static void Style(TextBox field)
     {
         field.BorderStyle = BorderStyle.Fixed3D;
@@ -49,6 +52,7 @@ internal static class DesktopTheme
         field.Font = new Font("Segoe UI", 11F);
     }
 
+    // Styles the record grid while preserving native selection and scrolling.
     public static void Style(DataGridView grid)
     {
         grid.BorderStyle = BorderStyle.None;

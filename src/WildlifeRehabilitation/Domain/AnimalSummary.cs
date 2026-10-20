@@ -6,6 +6,7 @@ namespace WildlifeRehabilitation.Domain;
 
 public static class AnimalSummary
 {
+    // Builds the brief's exact report layout from valid, unique records only.
     public static string Create(AnimalDocument document, DateTime generatedAt)
     {
         // Adapted from Aseza Patiwe's frmSummaryReport.btnSummary_Click totals and five status counters.
@@ -34,31 +35,28 @@ public static class AnimalSummary
         report.AppendLine("BAOBAB RIDGE WILDLIFE REHABILITATION CENTRE");
         report.AppendLine("ANIMAL SUMMARY REPORT");
         report.AppendLine("Generated: " + generatedAt.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture));
-        report.AppendLine();
+        report.AppendLine("----------------------------------------");
         if (totalAnimals == 0)
         {
-            report.AppendLine("Total animals: 0");
-            report.AppendLine("Average age (years): N/A");
-            report.AppendLine("Average recovery score: N/A");
+            report.AppendLine("Total animals:".PadRight(26) + "0");
+            report.AppendLine("Average age (years):".PadRight(26) + "N/A");
+            report.AppendLine("Average recovery score:".PadRight(26) + "N/A");
         }
         else
         {
             double avgAge = (double)totalAge / totalAnimals;
             double avgScore = (double)totalScore / totalAnimals;
-            report.AppendLine("Total animals: " + totalAnimals);
-            report.AppendLine("Average age (years): " + avgAge.ToString("F2", CultureInfo.InvariantCulture));
-            report.AppendLine("Average recovery score: " + avgScore.ToString("F2", CultureInfo.InvariantCulture));
+            report.AppendLine("Total animals:".PadRight(26) + totalAnimals.ToString(CultureInfo.InvariantCulture));
+            report.AppendLine("Average age (years):".PadRight(26) + avgAge.ToString("F2", CultureInfo.InvariantCulture));
+            report.AppendLine("Average recovery score:".PadRight(26) + avgScore.ToString("F2", CultureInfo.InvariantCulture));
         }
-        report.AppendLine();
+        report.AppendLine("----------------------------------------");
         report.AppendLine("Animals per status:");
-        report.AppendLine("Critical: " + criticalCount);
-        report.AppendLine("Serious: " + seriousCount);
-        report.AppendLine("Stable: " + stableCount);
-        report.AppendLine("Recovering: " + recoveringCount);
-        report.AppendLine("Release-Ready: " + releaseReadyCount);
-        report.AppendLine();
-        report.AppendLine("Skipped malformed or duplicate lines: " + document.SkippedCount);
-        report.AppendLine("Blank lines are ignored. Totals and averages include valid records only.");
+        report.AppendLine("Critical:".PadRight(26) + criticalCount.ToString(CultureInfo.InvariantCulture));
+        report.AppendLine("Serious:".PadRight(26) + seriousCount.ToString(CultureInfo.InvariantCulture));
+        report.AppendLine("Stable:".PadRight(26) + stableCount.ToString(CultureInfo.InvariantCulture));
+        report.AppendLine("Recovering:".PadRight(26) + recoveringCount.ToString(CultureInfo.InvariantCulture));
+        report.AppendLine("Release-Ready:".PadRight(26) + releaseReadyCount.ToString(CultureInfo.InvariantCulture));
         return report.ToString();
     }
 }

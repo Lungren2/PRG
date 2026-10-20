@@ -9,6 +9,7 @@ public sealed class SummaryForm : WindowsBackdropForm
     private readonly RichTextBox rtbSummary = new() { Dock = DockStyle.Fill, ReadOnly = true, WordWrap = false, Font = new Font("Consolas", 10F), BackColor = SystemColors.Window, AccessibleName = "Animal summary report" };
     private readonly Label feedback = new() { AutoSize = true, Margin = new Padding(0, 10, 0, 10) };
 
+    // Creates a read-only report surface and generates the first on-screen and saved report.
     public SummaryForm(AnimalFileStore store)
     {
         this.store = store;

@@ -15,9 +15,10 @@ public sealed partial class AnimalFileStore
     public string SummaryPath => Path.Combine(DirectoryPath, "summary.txt");
     public string DirectoryPath => Path.GetDirectoryName(DataPath)!;
 
+    // Resolves all data paths beside the executable, or in an isolated test directory.
     public AnimalFileStore(string directory) => DataPath = Path.Combine(Path.GetFullPath(directory), "animals.txt");
 
-    // Loads the current file, creating an empty UTF-8 file if it is missing.
+    // Creates an empty missing file, then loads valid records and the skipped-line count.
     public AnimalDocument Load()
     {
         var created = false;
@@ -31,28 +32,20 @@ public sealed partial class AnimalFileStore
         return ReadDocument(created);
     }
 
+    // Prevents two running copies of this app from rewriting the same animal file at once.
     private FileStream AcquireWriter() => new(Path.Combine(DirectoryPath, ".animals.lock"),
         FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None, 1, FileOptions.DeleteOnClose);
 
+    // Reads an ID even from a skipped line so duplicate IDs cannot silently affect another record.
     private static string RawId(FileLine line) => line.Content.Split('|')[0].Trim().ToUpperInvariant();
 
-    public string SuggestId()
-    {
-        var used = Load().Lines.Select(RawId).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        for (var number = 1; number <= 9999; number++)
-        {
-            var id = $"WR-{number:0000}";
-            if (!used.Contains(id)) return id;
-        }
-        throw new AnimalConflictException("All IDs from WR-0001 to WR-9999 are in use.");
-    }
-
+    // Appends one validated animal while retaining every existing line and rejecting duplicates.
     public void Append(Animal animal)
     {
         animal = ValidateForSave(animal);
         using var guard = AcquireWriter();
         var document = ReadDocument();
-        // Adapted from Classes.TextWriter duplicate-ID scan.
+        // Adapted from Tian's Classes.TextWriter duplicate-ID scan.
         // Check raw lines too, so an invalid record cannot give its ID to a new animal.
         bool exists = false;
         foreach (var line in document.Lines)
@@ -71,6 +64,7 @@ public sealed partial class AnimalFileStore
         SaveAnimals(original + separator + AnimalRules.Serialize(animal) + Environment.NewLine);
     }
 
+    // Replaces only the selected, unchanged record and keeps its ID immutable.
     public void Update(StoredAnimal expected, Animal replacement)
     {
         replacement = ValidateForSave(replacement);
@@ -84,12 +78,13 @@ public sealed partial class AnimalFileStore
         SaveAnimals(JoinLines(lines));
     }
 
+    // Removes the uniquely selected record without changing other file lines.
     public void Delete(StoredAnimal expected)
     {
         using var guard = AcquireWriter();
         var document = ReadDocument();
         var target = FindCurrentRecord(document, expected);
-        // Adapted from frmDelete.btnDelete_Click list/RemoveAll/write sequence.
+        // Adapted from Aseza Patiwe's frmDelete.btnDelete_Click list/RemoveAll/write sequence.
         // FindCurrentRecord first proves the selected ID is unique and the record unchanged.
         string selectedID = target.Animal.Id;
         var lines = document.Lines.ToList();
@@ -97,16 +92,18 @@ public sealed partial class AnimalFileStore
         SaveAnimals(JoinLines(lines));
     }
 
+    // Rejects missing, ambiguous, or stale selections before a destructive rewrite.
     private static StoredAnimal FindCurrentRecord(AnimalDocument document, StoredAnimal expected)
     {
         if (document.Lines.Count(line => RawId(line) == expected.Animal.Id) != 1)
-            throw new AnimalConflictException("The record is missing or its ID appears more than once. Cancel, repair duplicate IDs if necessary, and refresh.");
+            throw new AnimalConflictException("The record is missing or its ID appears more than once. Repair duplicate IDs if needed, then Refresh and select it again.");
         var current = document.Records.SingleOrDefault(record => record.Animal.Id == expected.Animal.Id);
         if (current is null || current.RawLine != expected.RawLine)
-            throw new AnimalConflictException("This record changed after it was loaded. Cancel and refresh before trying again.");
+            throw new AnimalConflictException("This record changed after it was loaded. Refresh and select it again before trying again.");
         return current;
     }
 
+    // Revalidates storage callers so they cannot bypass the form's shared rules.
     private static Animal ValidateForSave(Animal animal)
     {
         var draft = new AnimalDraft(animal.Id, animal.Name, animal.Species,
@@ -117,19 +114,21 @@ public sealed partial class AnimalFileStore
         return validated!;
     }
 
+    // Reconstructs untouched lines with their original line endings.
     private static string JoinLines(IEnumerable<FileLine> lines) => string.Concat(lines.Select(line => line.Content + line.Ending));
 
+    // Publishes a complete animal file atomically and retains its previous contents as a backup.
     private void SaveAnimals(string text) => AtomicTextFile.Write(DataPath, text,
         replaceExisting: true, Path.Combine(DirectoryPath, "animals.backup.txt"));
 
+    // Overwrites summary.txt using UTF-8 rather than appending to an earlier report.
     public void SaveSummary(string report)
     {
         using var guard = AcquireWriter();
         AtomicTextFile.Write(SummaryPath, report, replaceExisting: File.Exists(SummaryPath));
     }
 
-    // Reads valid records in file order and counts each rejected line once.
-    // Raw lines and line positions stay available to the existing Update and Delete features.
+    // Parses strict UTF-8 without throwing on individual malformed or duplicate records.
     private AnimalDocument ReadDocument(bool created = false)
     {
         using var file = new FileStream(DataPath, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete);
@@ -153,9 +152,11 @@ public sealed partial class AnimalFileStore
         return new AnimalDocument(lines, records, skipped, created);
     }
 
+    // Matches each raw line and its newline separately so unrelated records stay unchanged.
     [GeneratedRegex(@"([^\r\n]*)(\r\n|\r|\n|$)")]
     private static partial Regex LinePattern();
 
+    // Splits the file without inventing a blank record after its final newline.
     private static List<FileLine> SplitLines(string text) => LinePattern().Matches(text)
         .Where(match => match.Length != 0)
         .Select(match => new FileLine(match.Groups[1].Value, match.Groups[2].Value)).ToList();
