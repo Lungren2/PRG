@@ -17,6 +17,7 @@ public sealed partial class AnimalFileStore
 
     public AnimalFileStore(string directory) => DataPath = Path.Combine(Path.GetFullPath(directory), "animals.txt");
 
+    // Loads the current file, creating an empty UTF-8 file if it is missing.
     public AnimalDocument Load()
     {
         var created = false;
@@ -24,10 +25,7 @@ public sealed partial class AnimalFileStore
         {
             using var guard = AcquireWriter();
             if (File.Exists(DataPath)) return ReadDocument();
-            using var seed = typeof(AnimalFileStore).Assembly.GetManifestResourceStream("WildlifeRehabilitation.Data.animals.seed.txt")!;
-            using var reader = new StreamReader(seed, Utf8);
-            var content = reader.ReadToEnd();
-            AtomicTextFile.Write(DataPath, content, replaceExisting: false);
+            AtomicTextFile.Write(DataPath, "", replaceExisting: false);
             created = true;
         }
         return ReadDocument(created);
@@ -130,6 +128,8 @@ public sealed partial class AnimalFileStore
         AtomicTextFile.Write(SummaryPath, report, replaceExisting: File.Exists(SummaryPath));
     }
 
+    // Reads valid records in file order and counts each rejected line once.
+    // Raw lines and line positions stay available to the existing Update and Delete features.
     private AnimalDocument ReadDocument(bool created = false)
     {
         using var file = new FileStream(DataPath, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete);
@@ -143,7 +143,6 @@ public sealed partial class AnimalFileStore
         for (var index = 0; index < lines.Count; index++)
         {
             var line = lines[index].Content;
-            if (string.IsNullOrWhiteSpace(line)) continue;
             if (!AnimalRules.TryParse(line, out var animal) || !ids.Add(animal!.Id))
             {
                 skipped++;

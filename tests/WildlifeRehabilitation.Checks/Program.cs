@@ -14,13 +14,22 @@ Directory.CreateDirectory(root);
 Console.WriteLine("Fixtures: " + root);
 var store = new AnimalFileStore(root);
 var fresh = store.Load();
-Check(fresh.Created && fresh.Records.Count >= 8 && fresh.Records.Select(x => x.Animal.Status).Distinct().Count() >= 4, "Missing file creates valid starters across statuses");
+Check(fresh.Created && fresh.Records.Count == 0 && File.ReadAllText(store.DataPath) == "", "Missing file creates an empty UTF-8 file without inserting sample animals");
 Check(!store.Load().Created, "Loading existing data does not reseed it");
-Check(fresh.Records.Single(x => x.Animal.RecoveryScore == 39).Animal.Status == "Serious", "Score 39 loads as Serious");
-var first = AnimalRules.Serialize(fresh.Records[0].Animal);
+File.Copy(Path.Combine(AppContext.BaseDirectory, "animals.txt"), store.DataPath, overwrite: true);
+var starters = store.Load();
+Check(starters.Records.Count >= 8 && starters.SkippedCount == 0 && starters.Records.Select(x => x.Animal.Status).Distinct().Count() >= 4, "The committed starter file is copied beside the executable and has valid records across statuses");
+Check(starters.Records.Single(x => x.Animal.RecoveryScore == 39).Animal.Status == "Serious", "Score 39 loads as Serious");
+var first = AnimalRules.Serialize(starters.Records[0].Animal);
 File.WriteAllText(store.DataPath, first + "\ninvalid\n" + first + "\n\n", new UTF8Encoding(false));
 var mixed = store.Load();
-Check(mixed.Records.Count == 1 && mixed.SkippedCount == 2, "Malformed and duplicate lines are counted; blank lines are ignored");
+Check(mixed.Records.Count == 1 && mixed.SkippedCount == 3, "Malformed, duplicate, and blank lines are each skipped and counted once");
+var ordered = new[] { starters.Records[2].RawLine, starters.Records[0].RawLine, starters.Records[1].RawLine };
+var rejected = new[] { "bad|field|count", "invalid-id|Name|Species|2|50|Stable|Recovery Ward", "WR-0501|Name|Species|age|50|Stable|Recovery Ward", "WR-0502|Name|Species|2|score|Stable|Recovery Ward", "WR-0503|Name|Species|101|50|Stable|Recovery Ward", "WR-0504|" + new string('x', 31) + "|Species|2|50|Stable|Recovery Ward" };
+File.WriteAllText(store.DataPath, "\uFEFF" + string.Join("\r\n", ordered.Concat(rejected)), new UTF8Encoding(false));
+var orderedDocument = store.Load();
+Check(orderedDocument.Records.Select(record => record.RawLine).SequenceEqual(ordered) && orderedDocument.SkippedCount == rejected.Length, "UTF-8 BOM and CRLF records retain file order while invalid IDs, fields, age and score are skipped");
+Check(store.Load().Records.Count == ordered.Length && store.Load().SkippedCount == rejected.Length, "Reloading replaces the snapshot without accumulating records or skipped counts");
 File.WriteAllText(store.DataPath, "");
 Check(store.Load().Records.Count == 0 && !store.Load().Created, "An empty file remains empty");
 File.WriteAllBytes(store.DataPath, [0xFF, 0xFE, 0xFF]);
@@ -43,14 +52,18 @@ foreach (var score in new[] { -1, 101 })
     catch (ArgumentOutOfRangeException) { Check(true, "Out-of-range classification rejected"); }
 }
 foreach (var invalid in new[] {
-    new AnimalDraft("WR-0000", "Name", "Species", "2", "50"),
+    new AnimalDraft("WR-000", "Name", "Species", "2", "50"),
     new AnimalDraft("WR-0011", "", "Species", "2", "50"),
     new AnimalDraft("WR-0011", "Bad|Name", "Species", "2", "50"),
     new AnimalDraft("WR-0011", "Name", "Species\nNext", "2", "50"),
     new AnimalDraft("WR-0011", "Name", "Species", "-1", "50"),
+    new AnimalDraft("WR-0011", "Name", "Species", "101", "50"),
+    new AnimalDraft("WR-0011", new string('x', 31), "Species", "2", "50"),
+    new AnimalDraft("WR-0011", "Name", new string('x', 31), "2", "50"),
     new AnimalDraft("WR-0011", "Name", "Species", "2", "101"),
     new AnimalDraft("WR-0011", "Name", "Species", "2", "-1") })
     Check(!AnimalRules.TryCreate(invalid, out _, out _), "Invalid field input is rejected");
+Check(AnimalRules.TryCreate(new AnimalDraft(" wr-0000 ", new string('x', 30), new string('y', 30), "100", "100"), out var limits, out _) && limits!.Id == "WR-0000", "Four-digit IDs including 0000 and the brief's inclusive field limits are accepted after trimming");
 var added = new Animal("WR-0011", "Zoë", "Léopard", 2, 39);
 File.WriteAllText(store.DataPath, first + "\nmalformed line", new UTF8Encoding(false));
 var beforeAppend = File.ReadAllText(store.DataPath);
@@ -147,7 +160,7 @@ var statusFixtures = new[] { 0, 20, 40, 60, 80 }.Select((score, index) =>
 File.WriteAllText(store.DataPath, string.Join("\n", statusFixtures.Select(AnimalRules.Serialize)));
 var allStatusReport = AnimalSummary.Create(store.Load(), DateTime.Now);
 Check(new[] { "Critical: 1", "Serious: 1", "Stable: 1", "Recovering: 1", "Release-Ready: 1" }.All(allStatusReport.Contains), "All five of Aseza's named counters count their matching animals");
-File.WriteAllText(store.DataPath, AnimalRules.Serialize(critical with { Age = int.MaxValue }) + "\n" + AnimalRules.Serialize(ready with { Age = int.MaxValue }));
+File.WriteAllText(store.DataPath, AnimalRules.Serialize(critical with { Age = 100 }) + "\n" + AnimalRules.Serialize(ready with { Age = 100 }));
 var largeAgeReport = AnimalSummary.Create(store.Load(), DateTime.Now);
-Check(largeAgeReport.Contains("Average age (years): 2147483647.00"), "Summary totals cannot overflow when valid animal ages exceed an integer sum");
+Check(largeAgeReport.Contains("Average age (years): 100.00"), "Summary handles the maximum valid animal age");
 Console.WriteLine($"{count} checks passed.");

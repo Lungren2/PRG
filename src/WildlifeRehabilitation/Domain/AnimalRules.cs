@@ -42,32 +42,35 @@ public static partial class AnimalRules
         return (status, housingUnit);
     }
 
+    // Validates the shared fields before Add, Update, or file loading creates an animal.
     public static bool TryCreate(AnimalDraft draft, out Animal? animal, out Dictionary<string, string> errors)
     {
         errors = new Dictionary<string, string>();
         var id = draft.Id.Trim().ToUpperInvariant();
-        if (!IdPattern().IsMatch(id) || id == "WR-0000")
-            errors[nameof(draft.Id)] = "Use an ID from WR-0001 to WR-9999.";
+        if (!IdPattern().IsMatch(id))
+            errors[nameof(draft.Id)] = "Animal ID must be WR- followed by exactly four digits.";
         ValidateText(draft.Name, nameof(draft.Name), errors);
         ValidateText(draft.Species, nameof(draft.Species), errors);
-        if (!int.TryParse(draft.Age.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var age))
-            errors[nameof(draft.Age)] = "Age must be a nonnegative whole number.";
+        if (!int.TryParse(draft.Age.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var age) || age > 100)
+            errors[nameof(draft.Age)] = "Age must be a whole number from 0 to 100.";
         if (!int.TryParse(draft.RecoveryScore.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var score) || score > 100)
-            errors[nameof(draft.RecoveryScore)] = "Score must be a whole number from 0 to 100.";
+            errors[nameof(draft.RecoveryScore)] = "Recovery Score must be a whole number from 0 to 100.";
         animal = errors.Count == 0 ? new Animal(id, draft.Name.Trim(), draft.Species.Trim(), age, score) : null;
         return animal != null;
     }
 
+    // Applies the same trimmed text limits to names and species.
     private static void ValidateText(string value, string field, Dictionary<string, string> errors)
     {
-        if (string.IsNullOrWhiteSpace(value) || value.Trim().Length > 80 || value.Contains('|') || value.Any(char.IsControl))
-            errors[field] = $"{field} is required, up to 80 characters, with no pipes or control characters.";
+        if (string.IsNullOrWhiteSpace(value) || value.Trim().Length > 30 || value.Contains('|') || value.Any(char.IsControl))
+            errors[field] = $"{field} is required, up to 30 characters, with no pipes or control characters.";
     }
 
     public static string Serialize(Animal animal) => string.Join('|', animal.Id, animal.Name, animal.Species,
         animal.Age.ToString(CultureInfo.InvariantCulture), animal.RecoveryScore.ToString(CultureInfo.InvariantCulture),
         animal.Status, animal.HousingUnit);
 
+    // Splits one file line into seven fields and rejects invalid or inconsistent records.
     public static bool TryParse(string line, out Animal? animal)
     {
         animal = null;
