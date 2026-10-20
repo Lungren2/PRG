@@ -1,12 +1,15 @@
-// Adapted from Microsoft's DataGridViewSimpleUnbound sample. See THIRD-PARTY-NOTICES.txt.
+// View and navigation integration: Nkosinathi Mathenjwa (604435).
+// Existing shared grid foundation: see THIRD-PARTY-NOTICES.txt.
 using WildlifeRehabilitation.Storage;
 using WildlifeRehabilitation.Domain;
 
 namespace WildlifeRehabilitation;
 
-public sealed class MainForm : WindowsBackdropForm
+public enum AnimalViewMode { View, Update, Delete }
+
+public sealed class MainForm : Form
 {
-    private readonly AnimalFileStore store = new(AppContext.BaseDirectory);
+    private readonly AnimalFileStore store;
     private readonly DataGridView animalsGrid = new();
     private readonly FlowLayoutPanel actions = new() { Dock = DockStyle.Fill, AutoSize = true, WrapContents = true };
     private readonly Label status = new() { AutoSize = true, Padding = new Padding(0, 8, 0, 4) };
@@ -16,49 +19,57 @@ public sealed class MainForm : WindowsBackdropForm
     private readonly Button deleteButton;
     private StoredAnimal? SelectedRecord => animalsGrid.CurrentRow?.Tag as StoredAnimal;
 
-    public MainForm()
+    // Opens the view against animals.txt beside the executable.
+    public MainForm() : this(new AnimalFileStore(AppContext.BaseDirectory)) { }
+
+    // Builds the supplied grid-and-Back layout, reusing the existing Update and Delete handlers.
+    public MainForm(AnimalFileStore store, AnimalViewMode mode = AnimalViewMode.View)
     {
-        Text = "Animal records | Baobab Ridge";
-        DesktopTheme.Apply(this);
-        ClientSize = new Size(1120, 600);
-        MinimumSize = new Size(980, 500);
-        StartPosition = FormStartPosition.CenterScreen;
-        var layout = new TableLayoutPanel { BackColor = DesktopTheme.Canvas, Dock = DockStyle.Fill, Padding = new Padding(14), ColumnCount = 1, RowCount = 4 };
+        this.store = store;
+        Text = mode == AnimalViewMode.Update ? "Update an animal" :
+            mode == AnimalViewMode.Delete ? "Remove an animal" : "View all animals";
+        AutoScaleDimensions = new SizeF(96F, 96F);
+        AutoScaleMode = AutoScaleMode.Dpi;
+        Font = new Font("Arial", 10F);
+        BackColor = Color.White;
+        ForeColor = Color.Black;
+        ClientSize = new Size(1040, 480);
+        MinimumSize = new Size(980, 400);
+        StartPosition = FormStartPosition.CenterParent;
+        var layout = new TableLayoutPanel { BackColor = BackColor, Dock = DockStyle.Fill, Padding = new Padding(30), ColumnCount = 1, RowCount = 4 };
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        actions.Margin = new Padding(0, 0, 0, 10);
-        layout.Controls.Add(actions, 0, 0);
-        var gridSurface = new Panel { Dock = DockStyle.Fill, BorderStyle = BorderStyle.Fixed3D, BackColor = DesktopTheme.Surface, Margin = Padding.Empty };
-        gridSurface.Controls.Add(animalsGrid);
-        layout.Controls.Add(gridSurface, 0, 1);
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        layout.Controls.Add(animalsGrid, 0, 0);
+        actions.Margin = new Padding(0, 16, 0, 0);
+        layout.Controls.Add(actions, 0, 1);
         layout.Controls.Add(status, 0, 2);
         layout.Controls.Add(fileLocation, 0, 3);
         Controls.Add(layout);
-        var addButton = AddAction("&Add animal", (_, _) => AddAnimal());
-        DesktopTheme.Style(addButton, primary: true);
+        var backButton = AddAction("&Back", (_, _) => Close());
+        backButton.Name = "btnBack";
+        CancelButton = backButton;
+        AddAction("&Refresh", (_, _) => RefreshAnimals()).Name = "btnRefresh";
         updateButton = AddAction("&Edit selected", (_, _) => EditSelected());
+        updateButton.Visible = mode == AnimalViewMode.Update;
         deleteButton = AddAction("&Delete selected", btnDelete_Click);
-        DesktopTheme.Style(deleteButton, danger: true);
-        AddAction("&Summary report", (_, _) => { using var summary = new SummaryForm(store); summary.ShowDialog(this); });
-        AddAction("&Refresh", (_, _) => RefreshAnimals());
+        deleteButton.Visible = mode == AnimalViewMode.Delete;
         var findControls = new FlowLayoutPanel { AutoSize = true, WrapContents = false, Margin = Padding.Empty };
         findControls.Controls.Add(new Label { Text = "Find ID", AutoSize = true, ForeColor = DesktopTheme.Muted, Margin = new Padding(8, 10, 8, 0) });
-        DesktopTheme.Style(findId);
+        findId.BorderStyle = BorderStyle.FixedSingle;
         findId.Margin = new Padding(0, 5, 8, 0);
         fileLocation.ForeColor = DesktopTheme.Muted;
         findControls.Controls.Add(findId);
-        var findButton = new DesktopButton { Text = "&Find" };
-        DesktopTheme.Style(findButton);
+        var findButton = new Button { Text = "&Search", AutoSize = true, MinimumSize = new Size(80, 32) };
         findButton.Click += (_, _) => FindAnimal();
         findControls.Controls.Add(findButton);
+        findControls.Visible = mode == AnimalViewMode.Update;
         actions.Controls.Add(findControls);
         findId.KeyDown += (_, e) => { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; FindAnimal(); } };
         SetupDataGridView();
-        DesktopTheme.Style(animalsGrid);
-        foreach (var name in new[] { "Age", "Score" })
+        foreach (var name in new[] { "Age", "Recovery Score" })
         {
             animalsGrid.Columns[name].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
             animalsGrid.Columns[name].HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleRight;
@@ -66,8 +77,8 @@ public sealed class MainForm : WindowsBackdropForm
         updateButton.Enabled = deleteButton.Enabled = false;
         layout.SizeChanged += (_, _) => status.MaximumSize = new Size(Math.Max(100, layout.ClientSize.Width - 36), 0);
         animalsGrid.SelectionChanged += (_, _) => updateButton.Enabled = deleteButton.Enabled = SelectedRecord is not null;
-        animalsGrid.CellDoubleClick += (_, e) => { if (e.RowIndex >= 0) EditSelected(); };
-        animalsGrid.KeyDown += (_, e) => { if (e.KeyCode == Keys.Delete) { e.SuppressKeyPress = true; btnDelete_Click(this, EventArgs.Empty); } };
+        animalsGrid.CellClick += (_, e) => { if (mode == AnimalViewMode.Update && e.RowIndex >= 0) EditSelected(); };
+        animalsGrid.KeyDown += (_, e) => { if (mode == AnimalViewMode.Delete && e.KeyCode == Keys.Delete) { e.SuppressKeyPress = true; btnDelete_Click(this, EventArgs.Empty); } };
         Shown += (_, _) => RefreshAnimals();
     }
 
@@ -76,7 +87,11 @@ public sealed class MainForm : WindowsBackdropForm
     private void btnDelete_Click(object? sender, EventArgs e)
     {
         var selected = SelectedRecord;
-        if (selected is null) return;
+        if (selected is null)
+        {
+            MessageBox.Show(this, "Select an animal row first.", Text, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
         var result = MessageBox.Show(this,
             $"Delete {selected.Animal.Id} ({selected.Animal.Name})? This cannot be undone in the app.",
             "Confirm delete", MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2);
@@ -90,10 +105,15 @@ public sealed class MainForm : WindowsBackdropForm
         catch (Exception exception) when (UiErrors.IsFileError(exception)) { UiErrors.Show(this, exception); }
     }
 
+    // Passes the selected record to Ethan's existing shared editor and refreshes after saving.
     private void EditSelected()
     {
         var selected = SelectedRecord;
-        if (selected is null) return;
+        if (selected is null)
+        {
+            MessageBox.Show(this, "Select an animal row first.", Text, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
         var animal = selected.Animal;
         using var editor = new AnimalEditorForm("Update " + animal.Id,
             new AnimalDraft(animal.Id, animal.Name, animal.Species, animal.Age.ToString(), animal.RecoveryScore.ToString()),
@@ -102,36 +122,28 @@ public sealed class MainForm : WindowsBackdropForm
             RefreshAnimals($"Updated {animal.Id}.", animal.Id);
     }
 
+    // Finds an exact, case-insensitive ID and opens that record in the shared editor.
     private void FindAnimal()
     {
         var id = findId.Text.Trim().ToUpperInvariant();
         if (id.Length == 0) { status.Text = "Enter an animal ID, such as WR-0001, then select Find."; findId.Focus(); return; }
         if (!RefreshAnimals(selectedId: id)) return;
-        if (SelectedRecord?.Animal.Id == id) status.Text = $"Found {id}. " + status.Text;
+        if (SelectedRecord?.Animal.Id == id) EditSelected();
         else { status.Text = $"No valid animal record has ID {id}. " + status.Text; findId.Focus(); }
     }
 
-    private void AddAnimal()
-    {
-        try
-        {
-            using var editor = new AnimalEditorForm("Add animal", new AnimalDraft(store.SuggestId(), "", "", "", ""), store.Append);
-            if (editor.ShowDialog(this) == DialogResult.OK)
-                RefreshAnimals($"Added {editor.SavedAnimal!.Id}.", editor.SavedAnimal.Id);
-        }
-        catch (AnimalConflictException exception) { MessageBox.Show(this, exception.Message, "Cannot add animal", MessageBoxButtons.OK, MessageBoxIcon.Information); }
-        catch (Exception exception) when (UiErrors.IsFileError(exception)) { UiErrors.Show(this, exception); }
-    }
-
+    // Adds a labelled standard Windows button to the navigation row.
     private Button AddAction(string text, EventHandler onClick)
     {
-        var button = new DesktopButton { Text = text };
-        DesktopTheme.Style(button);
+        var button = new Button { Text = text, AutoSize = true, MinimumSize = new Size(100, 32),
+            FlatStyle = FlatStyle.Flat, BackColor = Color.White, ForeColor = Color.Black, Margin = new Padding(0, 0, 12, 0) };
+        button.FlatAppearance.BorderColor = Color.Black;
         button.Click += onClick;
         actions.Controls.Add(button);
         return button;
     }
 
+    // Makes the seven required columns read-only and keeps records in their original file order.
     private void SetupDataGridView()
     {
         animalsGrid.Name = "animalsGrid";
@@ -146,17 +158,23 @@ public sealed class MainForm : WindowsBackdropForm
         animalsGrid.MultiSelect = false;
         animalsGrid.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.DisplayedCellsExceptHeaders;
         animalsGrid.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.Single;
-        animalsGrid.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
+        animalsGrid.CellBorderStyle = DataGridViewCellBorderStyle.Single;
         animalsGrid.BackgroundColor = SystemColors.Window;
-        animalsGrid.GridColor = SystemColors.ControlLight;
+        animalsGrid.GridColor = Color.Black;
+        animalsGrid.BorderStyle = BorderStyle.FixedSingle;
+        animalsGrid.EnableHeadersVisualStyles = false;
+        animalsGrid.ColumnHeadersDefaultCellStyle.BackColor = Color.White;
+        animalsGrid.ColumnHeadersDefaultCellStyle.ForeColor = Color.Black;
+        animalsGrid.RowTemplate.Height = 28;
         animalsGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
         animalsGrid.ColumnHeadersDefaultCellStyle.Font = new Font(Font, FontStyle.Bold);
-        string[] headers = ["Animal ID", "Name", "Species", "Age", "Score", "Status", "Housing unit"];
-        int[] widths = [110, 130, 170, 65, 75, 130, 210];
+        string[] headers = ["Animal ID", "Name", "Species", "Age", "Recovery Score", "Status", "Housing Unit"];
+        int[] widths = [100, 120, 145, 55, 130, 130, 200];
         for (var index = 0; index < headers.Length; index++)
-            animalsGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = headers[index], HeaderText = headers[index], MinimumWidth = widths[index], FillWeight = widths[index], SortMode = DataGridViewColumnSortMode.Automatic });
+            animalsGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = headers[index], HeaderText = headers[index], MinimumWidth = widths[index], FillWeight = widths[index], SortMode = DataGridViewColumnSortMode.NotSortable });
     }
 
+    // Replaces grid rows with one fresh file snapshot, preserving a selected ID when it still exists.
     private bool RefreshAnimals(string? message = null, string? selectedId = null)
     {
         selectedId ??= SelectedRecord?.Animal.Id;
@@ -164,15 +182,20 @@ public sealed class MainForm : WindowsBackdropForm
         {
             var document = store.Load();
             animalsGrid.Rows.Clear();
+            DataGridViewRow? selectedRow = null;
             foreach (var record in document.Records)
             {
                 var animal = record.Animal;
                 var index = animalsGrid.Rows.Add(animal.Id, animal.Name, animal.Species, animal.Age, animal.RecoveryScore, animal.Status, animal.HousingUnit);
                 animalsGrid.Rows[index].Tag = record;
-                if (animal.Id == selectedId) animalsGrid.CurrentCell = animalsGrid.Rows[index].Cells[0];
+                if (animal.Id == selectedId) selectedRow = animalsGrid.Rows[index];
             }
+            // Adding rows can select the first row automatically; only restore an explicit selection.
+            animalsGrid.ClearSelection();
+            animalsGrid.CurrentCell = null;
+            if (selectedRow != null) animalsGrid.CurrentCell = selectedRow.Cells[0];
             updateButton.Enabled = deleteButton.Enabled = SelectedRecord is not null;
-            var prefix = document.Created ? "Created starter file. " : message is null ? "" : message + " ";
+            var prefix = document.Created ? "Created empty animals.txt. " : message is null ? "" : message + " ";
             status.Text = $"{prefix}{document.Records.Count} animals loaded. Skipped lines: {document.SkippedCount}." + (document.Records.Count == 0 ? " No animal records to display." : "");
             status.ForeColor = document.SkippedCount > 0 ? DesktopTheme.Error : DesktopTheme.Muted;
             fileLocation.Text = store.DataPath;
